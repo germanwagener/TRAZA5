@@ -18,7 +18,7 @@
           <label>Empresa
             <select name="client_id" required>
               <% clients.forEach(c=>{ %>
-                <option value="<%= c.id %>" <%= client && Number(client.id)===Number(c.id)?'selected':'' %>><%= c.name %></option>
+                <option value="<%= c.id %>" <%= activeClient && Number(activeClient.id)===Number(c.id)?'selected':'' %>><%= c.name %></option>
               <% }) %>
             </select>
           </label>
@@ -38,7 +38,7 @@
           </label>
         <% } else { %>
           <input type="hidden" name="role" value="operator">
-          <p class="notice">Como administrador de empresa podés crear operadores para <b><%= client.name %></b>.</p>
+          <p class="notice">Como administrador de empresa podés crear operadores para <b><%= activeClient.name %></b>.</p>
         <% } %>
         <button>Crear usuario</button>
       </form>
