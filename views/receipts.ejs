@@ -1,1 +1,82 @@
-<%- include('partials/head',{title:'Ingreso · TRAZA5'}) %><%- include('partials/nav') %><main><%- include('partials/flash') %><div class="pagehead"><div><p class="eyebrow">RECEPCIÓN / DEPÓSITO</p><h1>Ingreso de mercadería</h1><p class="muted">Proveedor y producto vienen de listas maestras. El sistema asigna un lote interno único.</p></div></div><section class="card"><form method="post" action="/receipts"><div class="formgrid"><label>Proveedor<select name="supplier_id" required><option value="">Seleccionar...</option><% suppliers.forEach(s=>{ %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></label><label>Producto<select id="receiptProduct" name="product_id" required><option value="">Seleccionar...</option><% products.forEach(p=>{ %><option value="<%= p.id %>" data-brand="<%= p.default_brand||'' %>"><%= p.name %> · <%= p.category %></option><% }) %></select></label><label>Marca<input id="receiptBrand" name="brand"></label><label>Lote del proveedor<input name="supplier_lot"></label><label>Cantidad<input type="number" step="0.001" min="0.001" name="qty" required></label><label>Precio unitario<input type="number" step="0.01" min="0" name="unit_price" value="0"></label><label>Fecha de ingreso<input type="date" name="received_at" required></label><label>Fecha de vencimiento<input type="date" name="expires_at"><small>Si queda vacía y el producto tiene vida útil, se calcula sola.</small></label><label class="wide">Observaciones<textarea name="notes"></textarea></label></div><button>Registrar ingreso y generar lote interno</button></form></section><section class="card"><div class="tablehead"><div><h2>Ingresos registrados</h2><p class="muted">Búsqueda instantánea por proveedor, producto, marca, lote o fecha.</p></div><input class="filter" data-table="receiptsTable" placeholder="Buscar..."></div><div class="tablewrap"><table id="receiptsTable"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto</th><th>Marca</th><th>Lote prov.</th><th>Lote interno</th><th>Cant.</th><th>Venc.</th><th>Usuario</th></tr></thead><tbody><% rows.forEach(r=>{ %><tr><td><%= r.received_at.toISOString?r.received_at.toISOString().slice(0,10):r.received_at %></td><td><%= r.supplier %></td><td><b><%= r.product %></b></td><td><%= r.brand %></td><td><code><%= r.supplier_lot %></code></td><td><code><%= r.internal_lot %></code></td><td><%= r.qty %> <%= r.unit %></td><td><%= r.expires_at?(r.expires_at.toISOString?r.expires_at.toISOString().slice(0,10):r.expires_at):'' %></td><td><%= r.username %></td></tr><% }) %></tbody></table></div></section><script>document.querySelector('input[name=received_at]').value=new Date().toISOString().slice(0,10);</script></main><%- include('partials/foot') %>
+<%- include('partials/head',{title:'Ingreso · TRAZA5'}) %>
+<%- include('partials/nav') %>
+<main>
+  <%- include('partials/flash') %>
+  <div class="pagehead">
+    <div>
+      <p class="eyebrow">RECEPCIÓN · <%= client.name.toUpperCase() %></p>
+      <h1>Ingreso de mercadería</h1>
+      <p class="muted">Seleccioná el producto y TRAZA5 completará o filtrará automáticamente sus proveedores habilitados.</p>
+    </div>
+  </div>
+
+  <section class="card">
+    <form method="post" action="/receipts">
+      <div class="formgrid">
+        <label>Producto
+          <select id="receiptProduct" name="product_id" required>
+            <option value="">Seleccionar...</option>
+            <% products.forEach(p=>{ %>
+              <option
+                value="<%= p.id %>"
+                data-brand="<%= p.default_brand||'' %>"
+                data-suppliers="<%= (p.supplier_ids||[]).join(',') %>"
+              ><%= p.name %> · <%= p.category %><%= p.supplier_names?' · '+p.supplier_names:'' %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Proveedor
+          <select id="receiptSupplier" name="supplier_id" required>
+            <option value="">Primero seleccioná el producto...</option>
+            <% suppliers.forEach(s=>{ %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+          </select>
+          <small id="supplierHint">El proveedor se completará automáticamente cuando exista una sola opción.</small>
+        </label>
+        <label>Marca<input id="receiptBrand" name="brand"></label>
+        <label>Lote del proveedor<input name="supplier_lot"></label>
+        <label>Cantidad<input type="number" step="0.001" min="0.001" name="qty" required></label>
+        <label>Precio unitario<input type="number" step="0.01" min="0" name="unit_price" value="0"></label>
+        <label>Fecha de ingreso<input type="date" name="received_at" required></label>
+        <label>Fecha de vencimiento
+          <input type="date" name="expires_at">
+          <small>Si queda vacía y el producto tiene vida útil, se calcula sola.</small>
+        </label>
+        <label class="wide">Observaciones<textarea name="notes"></textarea></label>
+      </div>
+      <button>Registrar ingreso y generar lote interno</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="tablehead">
+      <div>
+        <h2>Ingresos registrados</h2>
+        <p class="muted">Búsqueda instantánea por proveedor, producto, marca, lote o fecha.</p>
+      </div>
+      <input class="filter" data-table="receiptsTable" placeholder="Buscar...">
+    </div>
+    <div class="tablewrap">
+      <table id="receiptsTable">
+        <thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto</th><th>Marca</th><th>Lote prov.</th><th>Lote interno</th><th>Cant.</th><th>Venc.</th><th>Usuario</th></tr></thead>
+        <tbody>
+          <% rows.forEach(r=>{ %>
+            <tr>
+              <td><%= r.received_at.toISOString?r.received_at.toISOString().slice(0,10):r.received_at %></td>
+              <td><%= r.supplier %></td>
+              <td><b><%= r.product %></b></td>
+              <td><%= r.brand %></td>
+              <td><code><%= r.supplier_lot %></code></td>
+              <td><code><%= r.internal_lot %></code></td>
+              <td><%= r.qty %> <%= r.unit %></td>
+              <td><%= r.expires_at?(r.expires_at.toISOString?r.expires_at.toISOString().slice(0,10):r.expires_at):'' %></td>
+              <td><%= r.username %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>document.querySelector('input[name=received_at]').value=new Date().toISOString().slice(0,10);</script>
+</main>
+<%- include('partials/foot') %>

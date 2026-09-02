@@ -1,1 +1,79 @@
-<%- include('partials/head',{title:'Usuarios · TRAZA5'}) %><%- include('partials/nav') %><main><%- include('partials/flash') %><div class="pagehead"><div><p class="eyebrow">ADMINISTRACIÓN</p><h1>Usuarios y contraseñas</h1><p class="muted">El administrador configura. Los operadores cargan cantidades, ingresos y elaboraciones.</p></div></div><div class="split"><section class="card"><h2>Crear usuario</h2><form method="post" action="/admin/users"><label>Usuario<input name="username" required></label><label>Contraseña inicial<input type="password" name="password" minlength="6" required></label><label>Rol<select name="role"><option value="operator">Operador</option><option value="admin">Administrador</option></select></label><button>Crear usuario</button></form></section><section class="card"><h2>Usuarios existentes</h2><div class="tablewrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody><% rows.forEach(r=>{ %><tr><td><b><%= r.username %></b></td><td><%= r.role==='admin'?'Administrador':'Operador' %></td><td><span class="pill <%= r.active?'liberado':'rechazado' %>"><%= r.active?'ACTIVO':'INACTIVO' %></span></td><td><% if(Number(r.id)!==Number(user.id)){ %><form method="post" action="/admin/users/<%= r.id %>/toggle"><button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button></form><% } %></td></tr><% }) %></tbody></table></div></section></div></main><%- include('partials/foot') %>
+<%- include('partials/head',{title:'Usuarios · TRAZA5'}) %>
+<%- include('partials/nav') %>
+<main>
+  <%- include('partials/flash') %>
+  <div class="pagehead">
+    <div>
+      <p class="eyebrow">ADMINISTRACIÓN</p>
+      <h1>Usuarios por empresa</h1>
+      <p class="muted">Cada cuenta queda vinculada a un solo cliente y únicamente puede ver la información de esa empresa.</p>
+    </div>
+  </div>
+
+  <div class="split">
+    <section class="card">
+      <h2>Crear usuario</h2>
+      <form method="post" action="/admin/users">
+        <% if(superadmin){ %>
+          <label>Empresa
+            <select name="client_id" required>
+              <% clients.forEach(c=>{ %>
+                <option value="<%= c.id %>" <%= client && Number(client.id)===Number(c.id)?'selected':'' %>><%= c.name %></option>
+              <% }) %>
+            </select>
+          </label>
+        <% } %>
+        <label>Usuario
+          <input name="username" autocomplete="off" required>
+        </label>
+        <label>Contraseña inicial
+          <input type="password" name="password" minlength="8" required>
+        </label>
+        <% if(superadmin){ %>
+          <label>Rol
+            <select name="role">
+              <option value="operator">Operador</option>
+              <option value="admin">Administrador de empresa</option>
+            </select>
+          </label>
+        <% } else { %>
+          <input type="hidden" name="role" value="operator">
+          <p class="notice">Como administrador de empresa podés crear operadores para <b><%= client.name %></b>.</p>
+        <% } %>
+        <button>Crear usuario</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="tablehead">
+        <h2>Usuarios existentes</h2>
+        <input class="filter" data-table="usersTable" placeholder="Buscar usuario o empresa...">
+      </div>
+      <div class="tablewrap">
+        <table id="usersTable">
+          <thead>
+            <tr><th>Usuario</th><th>Empresa</th><th>Rol</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(r=>{ %>
+              <tr>
+                <td><b><%= r.username %></b></td>
+                <td><%= r.client_name %></td>
+                <td><%= r.role==='admin'?'Administrador de empresa':'Operador' %></td>
+                <td><span class="pill <%= r.active?'liberado':'rechazado' %>"><%= r.active?'ACTIVO':'INACTIVO' %></span></td>
+                <td>
+                  <% if(Number(r.id)!==Number(user.id) && (superadmin || r.role==='operator')){ %>
+                    <form method="post" action="/admin/users/<%= r.id %>/toggle">
+                      <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<%- include('partials/foot') %>

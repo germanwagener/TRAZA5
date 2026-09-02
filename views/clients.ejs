@@ -1,0 +1,73 @@
+<%- include('partials/head',{title:'Clientes · TRAZA5'}) %>
+<%- include('partials/nav') %>
+<main>
+  <%- include('partials/flash') %>
+  <div class="pagehead">
+    <div>
+      <p class="eyebrow">ADMINISTRACIÓN GENERAL</p>
+      <h1>Empresas clientes</h1>
+      <p class="muted">Cada empresa trabaja en un espacio independiente. Sus usuarios, sectores, productos, recetas, lotes y registros nunca se mezclan con los de otra.</p>
+    </div>
+  </div>
+
+  <div class="split clients-layout">
+    <section class="card">
+      <h2>Nueva empresa</h2>
+      <form method="post" action="/admin/clients">
+        <label>Nombre de la empresa
+          <input name="name" placeholder="Ej.: Bento Fit" required>
+        </label>
+        <label>Cantidad inicial de sectores
+          <input type="number" name="sector_count" value="1" min="1" max="20" required>
+          <small>Después podés agregar, renombrar o desactivar sectores.</small>
+        </label>
+        <button>Crear empresa y abrirla</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="tablehead">
+        <div>
+          <h2>Clientes configurados</h2>
+          <p class="muted">“Abrir empresa” cambia el espacio de trabajo activo.</p>
+        </div>
+        <input class="filter" data-table="clientsTable" placeholder="Buscar empresa...">
+      </div>
+      <div class="tablewrap">
+        <table id="clientsTable">
+          <thead>
+            <tr><th>Empresa</th><th>Sectores</th><th>Usuarios</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(r=>{ %>
+              <tr>
+                <td>
+                  <form method="post" action="/admin/clients/<%= r.id %>/update" class="client-name-form">
+                    <input name="name" value="<%= r.name %>" required>
+                    <button class="small secondary">Guardar nombre</button>
+                  </form>
+                </td>
+                <td><b><%= r.sector_count %></b></td>
+                <td><b><%= r.user_count %></b></td>
+                <td><span class="pill <%= r.active?'liberado':'rechazado' %>"><%= r.active?'ACTIVA':'INACTIVA' %></span></td>
+                <td>
+                  <div class="row-actions">
+                    <% if(r.active){ %>
+                      <form method="post" action="/admin/clients/<%= r.id %>/select">
+                        <button class="small">Abrir empresa</button>
+                      </form>
+                    <% } %>
+                    <form method="post" action="/admin/clients/<%= r.id %>/toggle">
+                      <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<%- include('partials/foot') %>
