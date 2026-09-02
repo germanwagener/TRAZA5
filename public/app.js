@@ -1,6 +1,42 @@
 function setupFilters(){document.querySelectorAll('.filter[data-table]').forEach(input=>{input.addEventListener('input',()=>{const q=input.value.toLowerCase().trim();const table=document.getElementById(input.dataset.table);if(!table)return;[...table.querySelectorAll('tbody tr')].forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none')})})}
-function setupReceipt(){const p=document.getElementById('receiptProduct'),b=document.getElementById('receiptBrand');if(p&&b)p.addEventListener('change',()=>{const o=p.selectedOptions[0];if(o&&o.dataset.brand&&!b.value)b.value=o.dataset.brand})}
-function addRecipeItem(){const box=document.getElementById('recipeItems');if(!box||!window.TRAZA_PRODUCTS)return;const row=document.createElement('div');row.className='recipe-row';row.innerHTML=`<select name="input_product_id">${window.TRAZA_PRODUCTS.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} · ${escapeHtml(p.unit)}</option>`).join('')}</select><input type="number" step="0.001" min="0" name="input_qty" placeholder="Cantidad"><button type="button" class="secondary small" onclick="this.parentElement.remove()">Quitar</button>`;box.appendChild(row)}
+function setupReceipt(){
+  const product=document.getElementById('receiptProduct');
+  const brand=document.getElementById('receiptBrand');
+  const supplier=document.getElementById('receiptSupplier');
+  const hint=document.getElementById('supplierHint');
+  if(!product||!brand||!supplier)return;
+  const options=[...supplier.options].filter(option=>option.value);
+  const update=()=>{
+    const selected=product.selectedOptions[0];
+    if(selected&&selected.dataset.brand&&!brand.value)brand.value=selected.dataset.brand;
+    const supplierIds=(selected?.dataset.suppliers||'').split(',').filter(Boolean);
+    const hasProduct=Boolean(product.value);
+    supplier.disabled=!hasProduct;
+    for(const option of options){
+      option.hidden=supplierIds.length>0&&!supplierIds.includes(option.value);
+    }
+    if(!hasProduct){
+      supplier.value='';
+      supplier.options[0].textContent='Primero seleccioná el producto...';
+      if(hint)hint.textContent='El proveedor se completará automáticamente cuando exista una sola opción.';
+      return;
+    }
+    supplier.options[0].textContent='Seleccionar proveedor...';
+    if(supplierIds.length===1){
+      supplier.value=supplierIds[0];
+      if(hint)hint.textContent='Proveedor seleccionado automáticamente.';
+    }else if(supplierIds.length>1){
+      if(!supplierIds.includes(supplier.value))supplier.value='';
+      if(hint)hint.textContent='Este producto tiene varios proveedores habilitados. Elegí el que realizó la entrega.';
+    }else{
+      supplier.value='';
+      if(hint)hint.textContent='Este producto no tiene proveedor configurado. Podés elegir uno de la empresa.';
+    }
+  };
+  product.addEventListener('change',update);
+  update();
+}
+function addRecipeItem(){const box=document.getElementById('recipeItems');if(!box||!window.TRAZA_PRODUCTS)return;const row=document.createElement('div');row.className='recipe-row';row.innerHTML=`<select name="input_product_id">${window.TRAZA_PRODUCTS.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} · ${escapeHtml(p.unit)}${p.supplier_names?' · '+escapeHtml(p.supplier_names):''}</option>`).join('')}</select><input type="number" step="0.001" min="0" name="input_qty" placeholder="Cantidad"><button type="button" class="secondary small" onclick="this.parentElement.remove()">Quitar</button>`;box.appendChild(row)}
 function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 let currentRecipeItems=[];
 async function loadProductionRecipe(){const select=document.getElementById('prodRecipe'),summary=document.getElementById('recipeSummary'),box=document.getElementById('sourceRows');if(!select||!summary||!box)return;box.innerHTML='';currentRecipeItems=[];if(!select.value){summary.textContent='Seleccioná una receta.';return}const data=await fetch('/api/recipe/'+select.value).then(r=>r.json());currentRecipeItems=data.items||[];summary.innerHTML=`<b>${escapeHtml(data.recipe.sector)} · ${escapeHtml(data.recipe.name)} v${escapeHtml(data.recipe.version)}</b><br>Resultado: ${escapeHtml(data.recipe.output_product)} · rendimiento nominal ${data.recipe.output_qty} ${escapeHtml(data.recipe.output_unit)}.`;for(const item of currentRecipeItems)await addSourceRow(item,true)}
