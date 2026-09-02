@@ -1,1 +1,32 @@
-<% if(user){ %><header><div class="brand">TRAZA<span>5</span><small>ONLINE</small></div><nav><a href="/">Inicio</a><a href="/receipts">Ingreso</a><a href="/production">Elaboración</a><a href="/stock">Stock por lote</a><a href="/trace">Trazabilidad</a><a href="/reports">Planillas</a><% if(user.role==='admin'){ %><a href="/admin/masters">Maestros</a><a href="/admin/recipes">Recetas</a><a href="/admin/users">Usuarios</a><a href="/audit">Auditoría</a><% } %><a href="/account/password">Contraseña</a><form method="post" action="/logout" class="inline"><button class="navbtn">Salir</button></form></nav><div class="who"><b><%= user.username %></b><span><%= user.role==='admin'?'Administrador':'Operador' %></span></div></header><% } %>
+<% if(user){ %>
+<header class="app-header">
+  <a class="brand-lockup" href="/" aria-label="Consultora en Alimentos · TRAZA5">
+    <img class="brand-logo" src="/brand-logo.png" alt="">
+    <span class="brand-copy">
+      <strong>Consultora en Alimentos</strong>
+      <small>TRAZA5 · SISTEMA DE TRAZABILIDAD</small>
+    </span>
+  </a>
+  <nav aria-label="Navegación principal">
+    <a href="/">Inicio</a>
+    <a href="/receipts">Ingreso</a>
+    <a href="/production">Elaboración</a>
+    <a href="/stock">Stock por lote</a>
+    <a href="/trace">Trazabilidad</a>
+    <a href="/reports">Planillas</a>
+    <% if(user.role==='admin'){ %>
+      <a href="/admin/masters">Maestros</a>
+      <a href="/admin/recipes">Recetas</a>
+      <a href="/admin/users">Usuarios</a>
+      <a href="/audit">Auditoría</a>
+    <% } %>
+    <a href="/account/password">Contraseña</a>
+    <form method="post" action="/logout" class="inline"><button class="navbtn">Salir</button></form>
+  </nav>
+  <div class="who"><b><%= user.username %></b><span><%= user.role==='admin'?'Administrador':'Operador' %></span></div>
+</header>
+<div class="print-brand" aria-hidden="true">
+  <img src="/brand-logo.png" alt="">
+  <div><strong>Consultora en Alimentos</strong><span>TRAZA5 · Sistema integral de trazabilidad</span></div>
+</div>
+<% } %>
