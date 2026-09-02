@@ -88,7 +88,7 @@ function isSuperAdmin(req) {
 
 app.use(asyncRoute(async (req, res, next) => {
   res.locals.user = null;
-  res.locals.client = null;
+  res.locals.activeClient = null;
   res.locals.clientChoices = [];
   res.locals.sectors = [];
   res.locals.flash = req.session.flash || null;
@@ -131,7 +131,7 @@ app.use(asyncRoute(async (req, res, next) => {
     client: activeClient
   };
   res.locals.user = req.session.user;
-  res.locals.client = activeClient;
+  res.locals.activeClient = activeClient;
   res.locals.clientChoices = clientChoices;
   if (activeClient) {
     res.locals.sectors = (await pool.query(
