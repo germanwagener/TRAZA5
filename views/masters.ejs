@@ -1,1 +1,140 @@
-<%- include('partials/head',{title:'Maestros · TRAZA5'}) %><%- include('partials/nav') %><main><%- include('partials/flash') %><div class="pagehead"><div><p class="eyebrow">SOLO ADMINISTRADOR</p><h1>Datos maestros</h1><p class="muted">Los operadores no escriben proveedores ni productos a mano: siempre seleccionan registros autorizados.</p></div></div><div class="three"><section class="card"><h2>Nuevo proveedor</h2><form method="post" action="/admin/suppliers"><label>Proveedor<input name="name" required></label><label>CUIT / identificación<input name="tax_id"></label><label>Contacto<input name="contact"></label><button>Agregar proveedor</button></form></section><section class="card"><h2>Nuevo producto</h2><form method="post" action="/admin/products"><label>Código<input name="code" placeholder="MP-001"></label><label>Nombre<input name="name" required></label><label>Tipo<select name="category"><option>Materia prima</option><option>Subproducto</option><option>Producto intermedio</option><option>Producto terminado</option><option>Envase</option><option>Otro</option></select></label><label>Unidad<input name="unit" value="kg" required></label><label>Marca predeterminada<input name="default_brand"></label><label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="0"></label><button>Agregar producto</button></form></section><section class="card"><h2>Sectores editables</h2><% sectorRows.forEach(s=>{ %><form class="sector-edit" method="post" action="/admin/sectors/<%= s.id %>"><input name="name" value="<%= s.name %>" required><input type="number" name="position" value="<%= s.position %>" min="1" class="short"><button class="small">Guardar</button></form><% }) %></section></div><div class="split"><section class="card"><div class="tablehead"><h2>Proveedores</h2><input class="filter" data-table="suppliersTable" placeholder="Filtrar proveedores..."></div><div class="tablewrap"><table id="suppliersTable"><thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th></tr></thead><tbody><% suppliers.forEach(s=>{ %><tr><td><b><%= s.name %></b></td><td><%= s.tax_id %></td><td><%= s.contact %></td></tr><% }) %></tbody></table></div></section><section class="card"><div class="tablehead"><h2>Productos</h2><input class="filter" data-table="productsTable" placeholder="Filtrar productos..."></div><div class="tablewrap"><table id="productsTable"><thead><tr><th>Código</th><th>Producto</th><th>Tipo</th><th>Unidad</th><th>Vida útil</th></tr></thead><tbody><% products.forEach(p=>{ %><tr><td><code><%= p.code||'' %></code></td><td><b><%= p.name %></b></td><td><%= p.category %></td><td><%= p.unit %></td><td><%= p.shelf_life_days %> días</td></tr><% }) %></tbody></table></div></section></div></main><%- include('partials/foot') %>
+<%- include('partials/head',{title:'Maestros · TRAZA5'}) %>
+<%- include('partials/nav') %>
+<main>
+  <%- include('partials/flash') %>
+  <div class="pagehead">
+    <div>
+      <p class="eyebrow">CONFIGURACIÓN DE <%= client.name.toUpperCase() %></p>
+      <h1>Datos maestros</h1>
+      <p class="muted">Estos proveedores, productos y sectores pertenecen únicamente a <b><%= client.name %></b>.</p>
+    </div>
+  </div>
+
+  <div class="three">
+    <section class="card">
+      <h2>Nuevo proveedor</h2>
+      <form method="post" action="/admin/suppliers">
+        <label>Proveedor<input name="name" required></label>
+        <label>CUIT / identificación<input name="tax_id"></label>
+        <label>Contacto<input name="contact"></label>
+        <button>Agregar proveedor</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Nuevo producto</h2>
+      <form method="post" action="/admin/products">
+        <label>Código<input name="code" placeholder="MP-001"></label>
+        <label>Nombre<input name="name" required></label>
+        <label>Tipo
+          <select name="category">
+            <option>Materia prima</option>
+            <option>Subproducto</option>
+            <option>Producto intermedio</option>
+            <option>Producto terminado</option>
+            <option>Envase</option>
+            <option>Otro</option>
+          </select>
+        </label>
+        <label>Unidad<input name="unit" value="kg" required></label>
+        <label>Marca predeterminada<input name="default_brand"></label>
+        <label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="0"></label>
+        <fieldset class="supplier-pick">
+          <legend>Proveedor/es que lo entregan</legend>
+          <% if(!suppliers.length){ %>
+            <p class="muted tiny">Primero cargá un proveedor. Los productos internos pueden guardarse sin proveedor.</p>
+          <% } %>
+          <% suppliers.filter(s=>s.active).forEach(s=>{ %>
+            <label class="check-label">
+              <input type="checkbox" name="supplier_id" value="<%= s.id %>">
+              <span><%= s.name %></span>
+            </label>
+          <% }) %>
+          <small>Podés marcar uno o varios. Si es uno solo, se seleccionará automáticamente al recibir mercadería.</small>
+        </fieldset>
+        <button>Agregar producto</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Sectores de la empresa</h2>
+      <form method="post" action="/admin/sectors" class="new-sector-form">
+        <input name="name" placeholder="Nombre del nuevo sector" required>
+        <button class="small">+ Agregar</button>
+      </form>
+      <div class="sector-list">
+        <% sectorRows.forEach(s=>{ %>
+          <div class="sector-manage <%= s.active?'':'is-inactive' %>">
+            <form class="sector-edit" method="post" action="/admin/sectors/<%= s.id %>">
+              <input name="name" value="<%= s.name %>" required>
+              <input type="number" name="position" value="<%= s.position %>" min="1" class="short">
+              <button class="small">Guardar</button>
+            </form>
+            <form method="post" action="/admin/sectors/<%= s.id %>/toggle">
+              <button class="small secondary"><%= s.active?'Desactivar':'Activar' %></button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  </div>
+
+  <div class="split">
+    <section class="card">
+      <div class="tablehead">
+        <h2>Proveedores</h2>
+        <input class="filter" data-table="suppliersTable" placeholder="Filtrar proveedores...">
+      </div>
+      <div class="tablewrap">
+        <table id="suppliersTable">
+          <thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th></tr></thead>
+          <tbody>
+            <% suppliers.forEach(s=>{ %>
+              <tr><td><b><%= s.name %></b></td><td><%= s.tax_id %></td><td><%= s.contact %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="tablehead">
+        <h2>Productos</h2>
+        <input class="filter" data-table="productsTable" placeholder="Filtrar productos...">
+      </div>
+      <div class="tablewrap">
+        <table id="productsTable">
+          <thead><tr><th>Código</th><th>Producto</th><th>Proveedor/es</th><th>Tipo</th><th>Unidad</th><th>Vida útil</th></tr></thead>
+          <tbody>
+            <% products.forEach(p=>{ %>
+              <tr>
+                <td><code><%= p.code||'' %></code></td>
+                <td><b><%= p.name %></b></td>
+                <td>
+                  <span><%= p.supplier_names||'Sin proveedor configurado' %></span>
+                  <details class="supplier-edit">
+                    <summary>Configurar</summary>
+                    <form method="post" action="/admin/products/<%= p.id %>/suppliers">
+                      <% const selectedSupplierIds=(p.supplier_ids||[]).map(String); %>
+                      <% suppliers.filter(s=>s.active).forEach(s=>{ %>
+                        <label class="check-label">
+                          <input type="checkbox" name="supplier_id" value="<%= s.id %>" <%= selectedSupplierIds.includes(String(s.id))?'checked':'' %>>
+                          <span><%= s.name %></span>
+                        </label>
+                      <% }) %>
+                      <button class="small">Guardar proveedores</button>
+                    </form>
+                  </details>
+                </td>
+                <td><%= p.category %></td>
+                <td><%= p.unit %></td>
+                <td><%= p.shelf_life_days %> días</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<%- include('partials/foot') %>

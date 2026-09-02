@@ -60,18 +60,23 @@ const pool = new Pool(poolConfig);
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8');
   await pool.query(schema);
-  const count = await pool.query('SELECT COUNT(*)::int n FROM sectors');
+  const defaultClient = await pool.query('SELECT id FROM clients ORDER BY id LIMIT 1');
+  const clientId = defaultClient.rows[0].id;
+  const count = await pool.query('SELECT COUNT(*)::int n FROM sectors WHERE client_id=$1', [clientId]);
   if (count.rows[0].n === 0) {
     for (let i = 1; i <= 5; i++) {
-      await pool.query('INSERT INTO sectors(name,position) VALUES($1,$2)', [`Sector ${i}`, i]);
+      await pool.query(
+        'INSERT INTO sectors(client_id,name,position) VALUES($1,$2,$3)',
+        [clientId, `Sector ${i}`, i]
+      );
     }
   }
 }
 
-async function audit(userId, action, entityType, entityId, details = {}) {
+async function audit(userId, clientId, action, entityType, entityId, details = {}) {
   await pool.query(
-    'INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,$2,$3,$4,$5::jsonb)',
-    [userId || null, action, entityType, entityId || null, JSON.stringify(details)]
+    'INSERT INTO audit_log(user_id,client_id,action,entity_type,entity_id,details) VALUES($1,$2,$3,$4,$5,$6::jsonb)',
+    [userId || null, clientId || null, action, entityType, entityId || null, JSON.stringify(details)]
   );
 }
 

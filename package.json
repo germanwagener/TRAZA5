@@ -1,12 +1,12 @@
 {
   "name": "traza5-web",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Sistema web multiusuario de trazabilidad industrial para 5 sectores editables",
+  "description": "Sistema web multiempresa de trazabilidad industrial con sectores editables",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/db.js && node --check src/trace.js"
+    "check": "node --check src/server.js && node --check src/db.js && node --check src/trace.js && node --check public/app.js"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

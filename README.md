@@ -1,13 +1,19 @@
-# TRAZA5 WEB — Trazabilidad industrial multiusuario
+# TRAZA5 WEB — Trazabilidad industrial multiempresa
 
 Versión web de TRAZA5 construida con **Node.js + PostgreSQL**. No utiliza Python.
 
 ## Funciones incluidas
 
-- 5 sectores iniciales, con nombre y orden editables por el administrador.
-- Usuarios con contraseña y roles `Administrador` / `Operador`.
-- Solo el administrador accede a usuarios, sectores, proveedores, productos, recetas y auditoría.
+- Una única aplicación para administrar varias empresas clientes.
+- Separación estricta por empresa de usuarios, sectores, proveedores, productos, recetas, lotes, elaboraciones y auditoría.
+- Administración general con selector de empresa activa.
+- Cada cliente puede tener la cantidad de sectores que necesite, con nombre, orden y estado editables.
+- Usuarios con contraseña y roles `Administración general`, `Administrador de empresa` y `Operador`.
+- Cada usuario cliente queda vinculado a una sola empresa y no puede acceder a datos de otra.
 - Proveedores y productos maestros; el operador solo selecciona datos existentes.
+- Cada producto puede vincularse con uno o varios proveedores de su empresa.
+- En recepción, el proveedor se completa automáticamente cuando el producto tiene una sola opción y se filtra cuando tiene varias.
+- Se permiten nombres de producto repetidos; el código y los proveedores permiten diferenciarlos.
 - Ingreso diario de mercadería con proveedor, producto, marca, lote proveedor, cantidad, precio, fecha de ingreso y vencimiento.
 - Lote interno automático para cada ingreso.
 - Productos clasificados como materia prima, subproducto, producto intermedio, producto terminado, envase u otro.
@@ -64,7 +70,9 @@ seleccionar su `DATABASE_URL`. No crear `PORT` manualmente.
 El proyecto incluye `railway.json` y la ruta `/health` para que Railway pueda
 verificar automáticamente que tanto TRAZA5 como PostgreSQL están disponibles.
 
-Al arrancar por primera vez, TRAZA5 crea automáticamente las tablas, los 5 sectores y el administrador inicial.
+Al arrancar por primera vez, TRAZA5 crea automáticamente las tablas, una empresa inicial llamada
+`Consultora en Alimentos`, cinco sectores editables y la cuenta de administración general.
+Las instalaciones anteriores se migran automáticamente al modelo multiempresa.
 
 ## Inicio del servidor
 
@@ -99,15 +107,15 @@ Usuario de prueba local: `admin` / `admin123`.
 
 ## Flujo recomendado de primera configuración
 
-1. Ingresar como administrador.
+1. Ingresar como administración general.
 2. Cambiar contraseña.
-3. Renombrar los 5 sectores.
-4. Cargar proveedores.
-5. Cargar materias primas, subproductos, intermedios y terminados.
-6. Cargar recetas y sus versiones.
-7. Crear operadores.
-8. Registrar ingresos de mercadería.
-9. Registrar elaboraciones seleccionando lotes disponibles.
+3. Crear una empresa cliente y definir su cantidad inicial de sectores.
+4. Abrir esa empresa desde el selector superior.
+5. Renombrar, agregar o desactivar sectores.
+6. Cargar proveedores y productos de la empresa.
+7. Cargar recetas y sus versiones.
+8. Crear el administrador u operadores de ese cliente.
+9. Registrar ingresos y elaboraciones.
 10. Probar una trazabilidad completa hacia atrás y hacia adelante.
 
 ## Recomendaciones para uso industrial real

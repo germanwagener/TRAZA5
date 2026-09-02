@@ -14,7 +14,10 @@
     <a href="/stock">Stock por lote</a>
     <a href="/trace">Trazabilidad</a>
     <a href="/reports">Planillas</a>
-    <% if(user.role==='admin'){ %>
+    <% if(user.role==='superadmin'){ %>
+      <a href="/admin/clients">Clientes</a>
+    <% } %>
+    <% if(user.role==='superadmin' || user.role==='admin'){ %>
       <a href="/admin/masters">Maestros</a>
       <a href="/admin/recipes">Recetas</a>
       <a href="/admin/users">Usuarios</a>
@@ -23,10 +26,30 @@
     <a href="/account/password">Contraseña</a>
     <form method="post" action="/logout" class="inline"><button class="navbtn">Salir</button></form>
   </nav>
-  <div class="who"><b><%= user.username %></b><span><%= user.role==='admin'?'Administrador':'Operador' %></span></div>
+  <div class="session-context">
+    <% if(user.role==='superadmin' && clientChoices.length){ %>
+      <form method="post" action="/admin/client-context" class="client-switcher">
+        <span>Empresa activa</span>
+        <select name="client_id" onchange="this.form.submit()" aria-label="Empresa activa">
+          <% clientChoices.forEach(c=>{ %>
+            <option value="<%= c.id %>" <%= client && Number(client.id)===Number(c.id)?'selected':'' %>><%= c.name %></option>
+          <% }) %>
+        </select>
+      </form>
+    <% } else if(client){ %>
+      <div class="client-badge"><span>Empresa</span><b><%= client.name %></b></div>
+    <% } %>
+    <div class="who">
+      <b><%= user.username %></b>
+      <span><%= user.role==='superadmin'?'Administración general':(user.role==='admin'?'Administrador de empresa':'Operador') %></span>
+    </div>
+  </div>
 </header>
 <div class="print-brand" aria-hidden="true">
   <img src="/brand-logo.png" alt="">
-  <div><strong>Consultora en Alimentos</strong><span>TRAZA5 · Sistema integral de trazabilidad</span></div>
+  <div>
+    <strong>Consultora en Alimentos</strong>
+    <span>TRAZA5 · <%= client ? client.name : 'Sistema integral de trazabilidad' %></span>
+  </div>
 </div>
 <% } %>
