@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: traza5
+      POSTGRES_USER: traza5
+      POSTGRES_PASSWORD: traza5_local
+    volumes:
+      - traza5_pgdata:/var/lib/postgresql/data
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://traza5:traza5_local@db:5432/traza5
+      SESSION_SECRET: CAMBIAR-ESTE-SECRETO-LOCAL
+      ADMIN_USER: admin
+      ADMIN_INITIAL_PASSWORD: admin123
+volumes:
+  traza5_pgdata:

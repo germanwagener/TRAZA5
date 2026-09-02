@@ -1,0 +1,60 @@
+TRAZA5 WEB - PASOS EXACTOS PARA RAILWAY
+=======================================
+
+Este programa NO USA PYTHON.
+Tecnología: Node.js + PostgreSQL.
+
+IMPORTANTE: 0.0.0.0 NO ES UN PUERTO.
+El programa ya quedó configurado para escuchar automáticamente en:
+- Dirección: 0.0.0.0
+- Puerto: el que Railway coloque en PORT
+
+CONFIGURACIÓN EN RAILWAY
+------------------------
+
+1. Dentro del mismo proyecto deben verse dos servicios:
+   - El servicio PostgreSQL, normalmente llamado Postgres.
+   - El servicio de la aplicación, por ejemplo TRAZA5.
+
+2. Entrar al servicio TRAZA5 (no al cuadro Postgres).
+
+3. Abrir la pestaña Variables y agregar estas variables:
+
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   SESSION_SECRET=escribir-aqui-un-texto-largo-y-dificil-de-adivinar
+   ADMIN_USER=admin
+   ADMIN_INITIAL_PASSWORD=escribir-aqui-una-clave-inicial-segura
+   NODE_ENV=production
+
+   No crear manualmente la variable PORT: Railway la asigna automáticamente.
+
+4. Si la base no se llama Postgres, seleccionar su variable DATABASE_URL
+   usando la opción de Railway "Add Reference" o "Agregar referencia".
+   Así Railway escribirá el nombre correcto sin tener que adivinarlo.
+
+5. Abrir Deployments y elegir Redeploy en el último despliegue.
+
+6. En Settings > Networking, generar un dominio público si todavía no existe.
+
+7. En Settings > Healthcheck, usar esta ruta:
+
+   /health
+
+8. Abrir la dirección HTTPS que entrega Railway e ingresar con ADMIN_USER y
+   ADMIN_INITIAL_PASSWORD.
+
+9. Cambiar la contraseña desde la aplicación en el primer ingreso.
+
+SI APARECE "FALTA LA CONEXIÓN POSTGRESQL"
+-----------------------------------------
+
+La variable fue agregada al servicio equivocado o no se creó la referencia.
+Volver al cuadro TRAZA5 > Variables y verificar que DATABASE_URL figure allí.
+Las variables que aparecen dentro del cuadro Postgres no se comparten solas
+con TRAZA5: hay que agregarlas como referencia en el servicio TRAZA5.
+
+SEGURIDAD
+---------
+
+Para uso real, mantener HTTPS, configurar copias de seguridad automáticas de
+PostgreSQL y utilizar contraseñas fuertes.
