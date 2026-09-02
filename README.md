@@ -28,7 +28,8 @@ Versión web de TRAZA5 construida con **Node.js + PostgreSQL**. No utiliza Pytho
 - Trazabilidad hacia atrás: lote final → elaboraciones → subproductos → materias primas → proveedor / ingreso / vencimiento.
 - Trazabilidad hacia adelante: materia prima o subproducto → todos los lotes que lo consumieron.
 - Ejercicio de trazabilidad por producto + lote.
-- Planillas filtrables e imprimibles / guardables como PDF desde el navegador.
+- Planillas de ingresos y elaboraciones filtrables por fecha y búsqueda, imprimibles o exportables a PDF desde el navegador.
+- Informes completos de trazabilidad imprimibles o exportables a PDF después de reconstruir el lote.
 - Auditoría de altas, accesos, cambios de contraseña y cambios de estado.
 - Diseño adaptable a PC, tablet y celular.
 
@@ -132,6 +133,6 @@ Antes de usar el sistema como registro crítico de producción, conviene validar
 - Despachos/clientes para trazabilidad hasta destino comercial.
 - Modo recall/retiro con listado de lotes y clientes afectados.
 - Alertas de vencimiento y stock FEFO.
-- Exportación Excel y PDF con formato corporativo.
+- Exportación Excel para análisis complementarios.
 - Adjuntos (certificados, análisis, remitos, fotos).
 - Firma electrónica o doble aprobación para operaciones sensibles.
