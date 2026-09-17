@@ -17,3 +17,7 @@ Variables: `PUBLIC_ORIGIN` (URL HTTPS sin barra final), `ADMIN_USER` y `ADMIN_IN
 El administrador se crea sólo si la base todavía no tiene uno. Los reinicios no reemplazan usuarios ni datos. La aplicación anterior usa PostgreSQL; esta versión usa SQLite en el volumen. Conservar el servicio anterior hasta completar la importación y verificar sus datos.
 
 Los datos de empresas, lotes, ventas, credenciales y PDF privados no forman parte de este repositorio. Descargar las copias de cada empresa desde el programa y mantener también copias del volumen fuera del servicio antes de cambios importantes.
+
+## Respaldos completos
+
+Panel admin de respaldos cifrados y restauración por fecha, copia previa y conexión opcional a Google Drive. Ver RESPALDOS.md dentro del paquete. El envío diario requiere completar la autorización de Google y configurar las variables privadas; desplegar el código no lo activa por sí solo.
