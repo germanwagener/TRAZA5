@@ -21,3 +21,5 @@ Los datos de empresas, lotes, ventas, credenciales y PDF privados no forman part
 ## Respaldos completos
 
 Panel admin de respaldos cifrados y restauración por fecha, copia previa y conexión opcional a Google Drive. Ver RESPALDOS.md dentro del paquete. El envío diario requiere completar la autorización de Google y configurar las variables privadas; desplegar el código no lo activa por sí solo.
+
+Incluye páginas públicas de política de privacidad y condiciones del servicio para la configuración OAuth de Google Drive.
