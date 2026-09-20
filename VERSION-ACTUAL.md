@@ -1,6 +1,6 @@
 # Traza 5 · Gestión integrada
 
-Versión con recetas, documentos PDF, informes seleccionables, ventas y trazabilidad por consumos reales de lotes.
+Versión con recetas, documentos PDF, informes seleccionables, ventas y trazabilidad por consumos reales de lotes. La instalación móvil muestra el nombre Traza, el logo de Consultora en Alimentos y un ícono de trazabilidad. La consulta de trazabilidad permite iniciar por producto terminado, subproducto o artículo / materia prima.
 
 ## Ejecutar
 
