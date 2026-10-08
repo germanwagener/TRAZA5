@@ -1,25 +1,7 @@
-# Traza 5 · Gestión integrada
+# TRAZA5 · Administración de empresas
 
-Versión con recetas, documentos PDF, informes seleccionables, ventas y trazabilidad por consumos reales de lotes. La instalación móvil muestra el nombre Traza y usa el logo transparente de Consultora en Alimentos como ícono de la app. La consulta de trazabilidad permite iniciar por producto terminado, subproducto o artículo / materia prima. La cuenta administradora puede ajustar el saldo real de cualquier lote, con fecha y motivo obligatorios; el resto de las cuentas no tiene acceso a esa acción.
+Cada empresa tiene Editar, Restablecer, Bloquear y Eliminar. Editar abre sus pantallas con la cuenta administradora y ofrece Corregir datos para artículos, recetas, stock, movimientos, documentos y configuración. Las correcciones conservan los identificadores internos y se registran con antes/después y motivo; los saldos afectados por cambios de cantidades se actualizan en la misma operación.
 
-## Ejecutar
+Eliminar retira la empresa y todos sus usuarios de los accesos activos, cierra sus sesiones y guarda sus datos para Recuperar desde Empresas eliminadas. Los respaldos incluyen esas empresas. Las cuentas de empresa no pueden usar las correcciones administrativas ni consultar otras empresas.
 
-Node.js 24 o posterior. No requiere instalar dependencias para ejecutar el servidor.
-
-`node iniciar.mjs` inicia la versión local. `node --test tests/*.test.mjs` ejecuta las pruebas.
-
-## Railway
-
-Usar esta carpeta como directorio raíz, con su Dockerfile. Adjuntar un volumen persistente en `/data`, mantener una sola réplica y configurar el dominio HTTPS. El inicio online exige el volumen en Railway para evitar perder datos al desplegar.
-
-Variables: `PUBLIC_ORIGIN` (URL HTTPS sin barra final), `ADMIN_USER` y `ADMIN_INITIAL_PASSWORD` (mínimo 12 caracteres para la primera instalación). Railway proporciona `PORT` y `RAILWAY_VOLUME_MOUNT_PATH`. Las credenciales se configuran en el alojamiento; no se guardan en GitHub.
-
-El administrador se crea sólo si la base todavía no tiene uno. Los reinicios no reemplazan usuarios ni datos. La aplicación anterior usa PostgreSQL; esta versión usa SQLite en el volumen. Conservar el servicio anterior hasta completar la importación y verificar sus datos.
-
-Los datos de empresas, lotes, ventas, credenciales y PDF privados no forman parte de este repositorio. Descargar las copias de cada empresa desde el programa y mantener también copias del volumen fuera del servicio antes de cambios importantes.
-
-## Respaldos completos
-
-Panel admin de respaldos cifrados y restauración por fecha, copia previa y conexión opcional a Google Drive. Ver RESPALDOS.md dentro del paquete. El envío diario requiere completar la autorización de Google y configurar las variables privadas; desplegar el código no lo activa por sí solo.
-
-Incluye páginas públicas de política de privacidad y condiciones del servicio para la configuración OAuth de Google Drive.
+El volumen y las credenciales del alojamiento se conservan. La imagen usa traza5-admin-edicion.tar.gz y Node.js 24.
