@@ -34,10 +34,13 @@
         <h2>Últimas elaboraciones</h2>
         <p class="muted">Lote interno + lote final + estado.</p>
       </div>
-      <a class="btn secondary" href="/trace">Ejercicio de trazabilidad</a>
+      <div class="row-actions">
+        <input class="filter" data-table="recentTable" placeholder="Buscar elaboración...">
+        <a class="btn secondary" href="/trace">Ejercicio de trazabilidad</a>
+      </div>
     </div>
     <div class="tablewrap">
-      <table>
+      <table id="recentTable">
         <thead><tr><th>Fecha</th><th>Sector</th><th>Producto</th><th>Lote interno</th><th>Lote final</th><th>Cant.</th><th>Estado</th></tr></thead>
         <tbody>
           <% if(!recent.length){ %><tr><td colspan="7">Todavía no hay elaboraciones.</td></tr><% } %>
@@ -48,7 +51,7 @@
               <td><b><%= r.product %></b></td>
               <td><code><%= r.internal_lot %></code></td>
               <td><code><%= r.final_lot||'' %></code></td>
-              <td><%= r.qty %></td>
+              <td><%= r.qty %> <%= r.unit %></td>
               <td><span class="pill <%= r.status.toLowerCase() %>"><%= r.status %></span></td>
             </tr>
           <% }) %>

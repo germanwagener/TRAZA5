@@ -345,6 +345,14 @@ button:hover,
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 12px; }
 .tablehead h2 { margin: 0; }
 .tablehead p { margin: 3px 0; }
+.print-controls { justify-content: flex-start; flex-wrap: wrap; }
+.print-controls label { margin: 0; min-width: 145px; }
+.print-controls input[type="date"] { width: 145px; }
+.print-controls .filter { flex: 1 1 260px; }
+.print-controls > small { flex-basis: 100%; color: var(--muted); }
+.print-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.print-actions small { max-width: 250px; color: var(--muted); text-align: right; }
+.print-filter-summary { font-size: 12px; }
 .filter { width: min(420px, 100%); }
 .tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 9px; }
 
@@ -479,6 +487,85 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
 .supplier-edit input[type="checkbox"] { accent-color: var(--accent-deep); min-width: auto; padding: 0; }
 .supplier-edit button { margin-top: 5px; }
 
+.master-create-grid { grid-template-columns: minmax(230px, .75fr) minmax(460px, 1.5fr) minmax(280px, .9fr); }
+.product-create-card { border-top: 3px solid var(--accent); }
+
+.presentation-box {
+  border: 1px solid #cbd6d0;
+  border-radius: 9px;
+  margin: 5px 0 14px;
+  padding: 12px;
+  background: linear-gradient(180deg, #f9fbfa, #f1f5f2);
+}
+
+.presentation-box legend {
+  color: var(--accent-deep);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 6px;
+}
+
+.presentation-box > small { color: var(--muted); display: block; line-height: 1.45; }
+.presentation-grid { display: grid; grid-template-columns: 1.2fr 1fr .8fr; gap: 9px; }
+.receipt-presentation { margin-top: 13px; border-left: 4px solid var(--accent); }
+.receipt-presentation-grid { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
+
+.calculation-preview {
+  background: #e9f5e3;
+  border: 1px solid #c7dfbb;
+  border-radius: 7px;
+  color: #315f2b;
+  font-size: 14px;
+  font-weight: 850;
+  margin-top: 2px;
+  padding: 11px 13px;
+}
+
+.calculation-preview.error { background: #fff2e0; border-color: #edd0a1; color: #805b18; }
+.list-filter { margin-bottom: 12px; }
+.select-search-label { color: var(--accent-deep); }
+.select-search-label input { border-style: dashed; background: #fbfdfc; }
+.trace-product-search { max-width: 480px; }
+
+tr.is-inactive { opacity: .62; }
+
+.admin-edit { min-width: max-content; }
+.admin-edit > summary {
+  color: var(--accent-deep);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  padding: 5px 0;
+}
+
+.admin-edit > form {
+  background: #f7f9f8;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  margin-top: 7px;
+  min-width: 270px;
+  padding: 12px;
+}
+
+.admin-edit label { white-space: normal; }
+.product-actions { align-items: flex-start; flex-direction: column; min-width: 180px; }
+.product-edit > form { min-width: min(570px, 78vw); }
+.supplier-config-edit > form { min-width: min(760px, 82vw); }
+
+.supplier-config-row {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(150px, 1.4fr) 1fr 110px 90px;
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+}
+
+.supplier-config-row:last-of-type { border-bottom: 0; }
+.supplier-config-name { align-items: center; flex-direction: row; }
+.supplier-config-name input { min-width: auto; }
+
 @media (max-width: 1240px) {
   .app-header { align-items: flex-start; flex-wrap: wrap; position: static; }
   .brand-lockup { min-width: 248px; }
@@ -489,6 +576,8 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
   .stats { grid-template-columns: repeat(3, 1fr); }
   .three,
   .split { grid-template-columns: 1fr; }
+  .master-create-grid { grid-template-columns: 1fr; }
+  .receipt-presentation-grid { grid-template-columns: repeat(2, 1fr); }
   .traceform { grid-template-columns: 1fr 1fr; }
   .who { display: none; }
   .session-context { width: 100%; }
@@ -523,6 +612,9 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
   .recipe-row,
   .source-row,
   .sector-edit { grid-template-columns: 1fr; }
+  .presentation-grid,
+  .receipt-presentation-grid,
+  .supplier-config-row { grid-template-columns: 1fr; }
   .client-name-form,
   .row-actions { min-width: 0; flex-direction: column; align-items: stretch; }
   .sector-manage,
@@ -534,6 +626,8 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
 }
 
 @media print {
+  @page { size: landscape; margin: 10mm; }
+
   header,
   footer,
   .no-print,
@@ -565,4 +659,5 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
   td { white-space: normal; padding: 5px; }
   .trace-node { break-inside: avoid; }
   .pagehead { margin-bottom: 10px; }
+  .print-filter-summary { color: #26322c; font-size: 9px; }
 }

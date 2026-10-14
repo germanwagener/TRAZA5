@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('Materia prima','Subproducto','Producto intermedio','Producto terminado','Envase','Otro')),
   unit TEXT NOT NULL DEFAULT 'kg',
+  default_presentation_unit TEXT NOT NULL DEFAULT 'unidad',
+  default_content_per_presentation NUMERIC(14,3) NOT NULL DEFAULT 1,
+  default_content_unit TEXT NOT NULL DEFAULT 'kg',
   default_brand TEXT DEFAULT '',
   shelf_life_days INTEGER NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -53,6 +56,9 @@ CREATE TABLE IF NOT EXISTS product_suppliers (
   client_id BIGINT NOT NULL REFERENCES clients(id),
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
+  presentation_unit TEXT NOT NULL DEFAULT 'unidad',
+  content_per_presentation NUMERIC(14,3) NOT NULL DEFAULT 1,
+  content_unit TEXT NOT NULL DEFAULT 'kg',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(product_id,supplier_id)
 );
@@ -87,6 +93,10 @@ CREATE TABLE IF NOT EXISTS receipts (
   brand TEXT DEFAULT '',
   supplier_lot TEXT DEFAULT '',
   internal_lot TEXT NOT NULL,
+  presentation_qty NUMERIC(14,3) NOT NULL DEFAULT 1,
+  presentation_unit TEXT NOT NULL DEFAULT 'unidad',
+  content_per_presentation NUMERIC(14,3) NOT NULL DEFAULT 1,
+  content_unit TEXT NOT NULL DEFAULT 'kg',
   qty NUMERIC(14,3) NOT NULL CHECK(qty > 0),
   unit TEXT NOT NULL,
   unit_price NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -142,6 +152,58 @@ ALTER TABLE recipes ADD COLUMN IF NOT EXISTS client_id BIGINT REFERENCES clients
 ALTER TABLE receipts ADD COLUMN IF NOT EXISTS client_id BIGINT REFERENCES clients(id);
 ALTER TABLE batches ADD COLUMN IF NOT EXISTS client_id BIGINT REFERENCES clients(id);
 ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS client_id BIGINT REFERENCES clients(id);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS default_presentation_unit TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS default_content_per_presentation NUMERIC(14,3);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS default_content_unit TEXT;
+ALTER TABLE product_suppliers ADD COLUMN IF NOT EXISTS presentation_unit TEXT;
+ALTER TABLE product_suppliers ADD COLUMN IF NOT EXISTS content_per_presentation NUMERIC(14,3);
+ALTER TABLE product_suppliers ADD COLUMN IF NOT EXISTS content_unit TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS presentation_qty NUMERIC(14,3);
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS presentation_unit TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS content_per_presentation NUMERIC(14,3);
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS content_unit TEXT;
+
+UPDATE products
+SET default_presentation_unit=COALESCE(default_presentation_unit,unit),
+    default_content_per_presentation=COALESCE(default_content_per_presentation,1),
+    default_content_unit=COALESCE(default_content_unit,unit)
+WHERE default_presentation_unit IS NULL
+   OR default_content_per_presentation IS NULL
+   OR default_content_unit IS NULL;
+UPDATE product_suppliers ps
+SET presentation_unit=COALESCE(ps.presentation_unit,p.unit),
+    content_per_presentation=COALESCE(ps.content_per_presentation,1),
+    content_unit=COALESCE(ps.content_unit,p.unit)
+FROM products p
+WHERE p.id=ps.product_id
+  AND (ps.presentation_unit IS NULL
+    OR ps.content_per_presentation IS NULL
+    OR ps.content_unit IS NULL);
+UPDATE receipts
+SET presentation_qty=qty,
+    presentation_unit=unit,
+    content_per_presentation=1,
+    content_unit=unit
+WHERE presentation_qty IS NULL
+   OR presentation_unit IS NULL
+   OR content_per_presentation IS NULL
+   OR content_unit IS NULL;
+ALTER TABLE receipts ALTER COLUMN presentation_qty SET NOT NULL;
+ALTER TABLE receipts ALTER COLUMN presentation_unit SET NOT NULL;
+ALTER TABLE receipts ALTER COLUMN content_per_presentation SET NOT NULL;
+ALTER TABLE receipts ALTER COLUMN content_unit SET NOT NULL;
+ALTER TABLE products ALTER COLUMN default_presentation_unit SET DEFAULT 'unidad';
+ALTER TABLE products ALTER COLUMN default_presentation_unit SET NOT NULL;
+ALTER TABLE products ALTER COLUMN default_content_per_presentation SET DEFAULT 1;
+ALTER TABLE products ALTER COLUMN default_content_per_presentation SET NOT NULL;
+ALTER TABLE products ALTER COLUMN default_content_unit SET DEFAULT 'kg';
+ALTER TABLE products ALTER COLUMN default_content_unit SET NOT NULL;
+ALTER TABLE product_suppliers ALTER COLUMN presentation_unit SET DEFAULT 'unidad';
+ALTER TABLE product_suppliers ALTER COLUMN presentation_unit SET NOT NULL;
+ALTER TABLE product_suppliers ALTER COLUMN content_per_presentation SET DEFAULT 1;
+ALTER TABLE product_suppliers ALTER COLUMN content_per_presentation SET NOT NULL;
+ALTER TABLE product_suppliers ALTER COLUMN content_unit SET DEFAULT 'kg';
+ALTER TABLE product_suppliers ALTER COLUMN content_unit SET NOT NULL;
 
 INSERT INTO clients(name)
 SELECT 'Consultora en Alimentos'
@@ -176,10 +238,12 @@ UPDATE batches
 SET client_id=(SELECT id FROM clients ORDER BY id LIMIT 1)
 WHERE client_id IS NULL;
 
-INSERT INTO product_suppliers(client_id,product_id,supplier_id)
-SELECT DISTINCT r.client_id,r.product_id,r.supplier_id
+INSERT INTO product_suppliers(client_id,product_id,supplier_id,presentation_unit,content_per_presentation,content_unit)
+SELECT DISTINCT ON (r.client_id,r.product_id,r.supplier_id)
+       r.client_id,r.product_id,r.supplier_id,r.presentation_unit,r.content_per_presentation,r.content_unit
 FROM receipts r
 WHERE r.client_id IS NOT NULL
+ORDER BY r.client_id,r.product_id,r.supplier_id,r.created_at DESC
 ON CONFLICT(product_id,supplier_id) DO NOTHING;
 
 ALTER TABLE sectors ALTER COLUMN client_id SET NOT NULL;
@@ -214,9 +278,11 @@ CREATE INDEX IF NOT EXISTS idx_product_suppliers_client_supplier ON product_supp
 CREATE INDEX IF NOT EXISTS idx_recipes_client ON recipes(client_id,active,name);
 CREATE INDEX IF NOT EXISTS idx_receipts_client_lot ON receipts(client_id,internal_lot);
 CREATE INDEX IF NOT EXISTS idx_receipts_client_product ON receipts(client_id,product_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_client_date ON receipts(client_id,received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_batches_client_lot ON batches(client_id,internal_lot);
 CREATE INDEX IF NOT EXISTS idx_batches_client_final_lot ON batches(client_id,final_lot);
 CREATE INDEX IF NOT EXISTS idx_batches_client_product ON batches(client_id,product_id);
+CREATE INDEX IF NOT EXISTS idx_batches_client_date ON batches(client_id,produced_at DESC);
 CREATE INDEX IF NOT EXISTS idx_batch_inputs_source ON batch_inputs(source_type,source_id);
 CREATE INDEX IF NOT EXISTS idx_audit_client_created ON audit_log(client_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);

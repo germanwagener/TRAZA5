@@ -6,11 +6,11 @@
     <div>
       <p class="eyebrow">CONFIGURACIÓN DE <%= activeClient.name.toUpperCase() %></p>
       <h1>Datos maestros</h1>
-      <p class="muted">Estos proveedores, productos y sectores pertenecen únicamente a <b><%= activeClient.name %></b>.</p>
+      <p class="muted">Proveedores, productos, presentaciones y sectores exclusivos de <b><%= activeClient.name %></b>.</p>
     </div>
   </div>
 
-  <div class="three">
+  <div class="three master-create-grid">
     <section class="card">
       <h2>Nuevo proveedor</h2>
       <form method="post" action="/admin/suppliers">
@@ -21,27 +21,78 @@
       </form>
     </section>
 
-    <section class="card">
+    <section class="card product-create-card">
       <h2>Nuevo producto</h2>
       <form method="post" action="/admin/products">
-        <label>Código<input name="code" placeholder="MP-001"></label>
-        <label>Nombre<input name="name" required></label>
-        <label>Tipo
-          <select name="category">
-            <option>Materia prima</option>
-            <option>Subproducto</option>
-            <option>Producto intermedio</option>
-            <option>Producto terminado</option>
-            <option>Envase</option>
-            <option>Otro</option>
-          </select>
-        </label>
-        <label>Unidad<input name="unit" value="kg" required></label>
-        <label>Marca predeterminada<input name="default_brand"></label>
-        <label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="0"></label>
+        <div class="formgrid">
+          <label>Código<input name="code" placeholder="MP-001"></label>
+          <label>Nombre<input name="name" required></label>
+          <label>Tipo
+            <select name="category">
+              <option>Materia prima</option>
+              <option>Subproducto</option>
+              <option>Producto intermedio</option>
+              <option>Producto terminado</option>
+              <option>Envase</option>
+              <option>Otro</option>
+            </select>
+          </label>
+          <label>Unidad de stock y recetas
+            <select name="unit" required>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+              <option value="unidad">unidad</option>
+              <option value="feta">feta</option>
+            </select>
+          </label>
+        </div>
+
+        <fieldset class="presentation-box">
+          <legend>Presentación habitual de compra</legend>
+          <div class="presentation-grid">
+            <label>Envase / presentación
+              <select name="default_presentation_unit">
+                <option value="bidón">Bidón</option>
+                <option value="bolsa">Bolsa</option>
+                <option value="botella">Botella</option>
+                <option value="caja">Caja</option>
+                <option value="paquete">Paquete</option>
+                <option value="lata">Lata</option>
+                <option value="balde">Balde</option>
+                <option value="cajón">Cajón</option>
+                <option value="unidad" selected>Unidad</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="L">L</option>
+                <option value="ml">ml</option>
+              </select>
+            </label>
+            <label>Contenido por presentación
+              <input type="number" step="0.001" min="0.001" name="default_content_per_presentation" value="1" required>
+            </label>
+            <label>Unidad del contenido
+              <select name="default_content_unit" required>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="L">L</option>
+                <option value="ml">ml</option>
+                <option value="unidad">unidad</option>
+                <option value="feta">feta</option>
+              </select>
+            </label>
+          </div>
+          <small>Ejemplo: presentación <b>bidón</b>, contenido <b>5 L</b>, unidad de stock <b>L</b>. Al recibir 6 bidones se cargarán 30 L.</small>
+        </fieldset>
+
+        <div class="formgrid">
+          <label>Marca predeterminada<input name="default_brand"></label>
+          <label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="0"></label>
+        </div>
         <fieldset class="supplier-pick">
           <legend>Proveedor/es que lo entregan</legend>
-          <% if(!suppliers.length){ %>
+          <% if(!suppliers.filter(s=>s.active).length){ %>
             <p class="muted tiny">Primero cargá un proveedor. Los productos internos pueden guardarse sin proveedor.</p>
           <% } %>
           <% suppliers.filter(s=>s.active).forEach(s=>{ %>
@@ -50,7 +101,7 @@
               <span><%= s.name %></span>
             </label>
           <% }) %>
-          <small>Podés marcar uno o varios. Si es uno solo, se seleccionará automáticamente al recibir mercadería.</small>
+          <small>Si tiene un solo proveedor, se seleccionará automáticamente al ingresar mercadería.</small>
         </fieldset>
         <button>Agregar producto</button>
       </form>
@@ -62,9 +113,10 @@
         <input name="name" placeholder="Nombre del nuevo sector" required>
         <button class="small">+ Agregar</button>
       </form>
-      <div class="sector-list">
+      <input class="filter list-filter" data-list-filter="sectorList" placeholder="Buscar sector...">
+      <div class="sector-list" id="sectorList">
         <% sectorRows.forEach(s=>{ %>
-          <div class="sector-manage <%= s.active?'':'is-inactive' %>">
+          <div class="sector-manage <%= s.active?'':'is-inactive' %>" data-filter-item>
             <form class="sector-edit" method="post" action="/admin/sectors/<%= s.id %>">
               <input name="name" value="<%= s.name %>" required>
               <input type="number" name="position" value="<%= s.position %>" min="1" class="short">
@@ -79,62 +131,145 @@
     </section>
   </div>
 
-  <div class="split">
-    <section class="card">
-      <div class="tablehead">
+  <section class="card">
+    <div class="tablehead">
+      <div>
         <h2>Proveedores</h2>
-        <input class="filter" data-table="suppliersTable" placeholder="Filtrar proveedores...">
+        <p class="muted">Abrí “Editar” para cambiar sus datos sin salir de esta pantalla.</p>
       </div>
-      <div class="tablewrap">
-        <table id="suppliersTable">
-          <thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th></tr></thead>
-          <tbody>
-            <% suppliers.forEach(s=>{ %>
-              <tr><td><b><%= s.name %></b></td><td><%= s.tax_id %></td><td><%= s.contact %></td></tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="tablehead">
-        <h2>Productos</h2>
-        <input class="filter" data-table="productsTable" placeholder="Filtrar productos...">
-      </div>
-      <div class="tablewrap">
-        <table id="productsTable">
-          <thead><tr><th>Código</th><th>Producto</th><th>Proveedor/es</th><th>Tipo</th><th>Unidad</th><th>Vida útil</th></tr></thead>
-          <tbody>
-            <% products.forEach(p=>{ %>
-              <tr>
-                <td><code><%= p.code||'' %></code></td>
-                <td><b><%= p.name %></b></td>
-                <td>
-                  <span><%= p.supplier_names||'Sin proveedor configurado' %></span>
-                  <details class="supplier-edit">
-                    <summary>Configurar</summary>
-                    <form method="post" action="/admin/products/<%= p.id %>/suppliers">
-                      <% const selectedSupplierIds=(p.supplier_ids||[]).map(String); %>
-                      <% suppliers.filter(s=>s.active).forEach(s=>{ %>
-                        <label class="check-label">
-                          <input type="checkbox" name="supplier_id" value="<%= s.id %>" <%= selectedSupplierIds.includes(String(s.id))?'checked':'' %>>
-                          <span><%= s.name %></span>
-                        </label>
-                      <% }) %>
-                      <button class="small">Guardar proveedores</button>
+      <input class="filter" data-table="suppliersTable" placeholder="Buscar proveedor, CUIT o contacto...">
+    </div>
+    <div class="tablewrap">
+      <table id="suppliersTable">
+        <thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <% suppliers.forEach(s=>{ %>
+            <tr class="<%= s.active?'':'is-inactive' %>">
+              <td><b><%= s.name %></b></td>
+              <td><%= s.tax_id %></td>
+              <td><%= s.contact %></td>
+              <td><span class="pill <%= s.active?'liberado':'rechazado' %>"><%= s.active?'ACTIVO':'INACTIVO' %></span></td>
+              <td>
+                <div class="row-actions">
+                  <details class="admin-edit">
+                    <summary>Editar</summary>
+                    <form method="post" action="/admin/suppliers/<%= s.id %>/update">
+                      <label>Nombre<input name="name" value="<%= s.name %>" required></label>
+                      <label>CUIT / identificación<input name="tax_id" value="<%= s.tax_id %>"></label>
+                      <label>Contacto<input name="contact" value="<%= s.contact %>"></label>
+                      <button class="small">Guardar cambios</button>
                     </form>
                   </details>
-                </td>
-                <td><%= p.category %></td>
-                <td><%= p.unit %></td>
-                <td><%= p.shelf_life_days %> días</td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+                  <form method="post" action="/admin/suppliers/<%= s.id %>/toggle">
+                    <button class="small secondary"><%= s.active?'Desactivar':'Activar' %></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="tablehead">
+      <div>
+        <h2>Productos y presentaciones</h2>
+        <p class="muted">El mismo nombre puede existir con diferentes proveedores y presentaciones.</p>
       </div>
-    </section>
-  </div>
+      <input class="filter" data-table="productsTable" placeholder="Buscar producto, código, proveedor o presentación...">
+    </div>
+    <div class="tablewrap">
+      <table id="productsTable">
+        <thead><tr><th>Producto</th><th>Presentación predeterminada</th><th>Proveedor/es</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+          <% products.forEach(p=>{ %>
+            <% const supplierConfigs=p.supplier_configs||[]; %>
+            <% const configBySupplier=new Map(supplierConfigs.map(c=>[String(c.supplier_id),c])); %>
+            <tr class="<%= p.active?'':'is-inactive' %>">
+              <td><b><%= p.name %></b><small class="block"><%= p.code||'Sin código' %> · <%= p.default_brand||'Sin marca predeterminada' %></small></td>
+              <td><b><%= p.default_presentation_unit %></b> de <%= p.default_content_per_presentation %> <%= p.default_content_unit %><small class="block">Se convierte a <%= p.unit %></small></td>
+              <td>
+                <span><%= p.supplier_names||'Sin proveedor configurado' %></span>
+                <% supplierConfigs.forEach(c=>{ %>
+                  <small class="block"><%= c.supplier_name %>: <%= c.presentation_unit %> de <%= c.content_per_presentation %> <%= c.content_unit %></small>
+                <% }) %>
+              </td>
+              <td><%= p.category %></td>
+              <td><b><%= p.unit %></b><small class="block"><%= p.shelf_life_days %> días de vida útil</small></td>
+              <td><span class="pill <%= p.active?'liberado':'rechazado' %>"><%= p.active?'ACTIVO':'INACTIVO' %></span></td>
+              <td>
+                <div class="row-actions product-actions">
+                  <details class="admin-edit product-edit">
+                    <summary>Editar producto</summary>
+                    <form method="post" action="/admin/products/<%= p.id %>/update">
+                      <div class="formgrid">
+                        <label>Código<input name="code" value="<%= p.code||'' %>"></label>
+                        <label>Nombre<input name="name" value="<%= p.name %>" required></label>
+                        <label>Tipo
+                          <select name="category">
+                            <% ['Materia prima','Subproducto','Producto intermedio','Producto terminado','Envase','Otro'].forEach(category=>{ %>
+                              <option <%= p.category===category?'selected':'' %>><%= category %></option>
+                            <% }) %>
+                          </select>
+                        </label>
+                        <label>Unidad de stock
+                          <select name="unit">
+                            <% ['kg','g','L','ml','unidad','feta'].forEach(unit=>{ %><option value="<%= unit %>" <%= p.unit===unit?'selected':'' %>><%= unit %></option><% }) %>
+                          </select>
+                        </label>
+                        <label>Presentación<input name="default_presentation_unit" value="<%= p.default_presentation_unit %>" required></label>
+                        <label>Contenido por presentación<input type="number" step="0.001" min="0.001" name="default_content_per_presentation" value="<%= p.default_content_per_presentation %>" required></label>
+                        <label>Unidad del contenido
+                          <select name="default_content_unit">
+                            <% ['kg','g','L','ml','unidad','feta'].forEach(unit=>{ %><option value="<%= unit %>" <%= p.default_content_unit===unit?'selected':'' %>><%= unit %></option><% }) %>
+                          </select>
+                        </label>
+                        <label>Marca predeterminada<input name="default_brand" value="<%= p.default_brand||'' %>"></label>
+                        <label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="<%= p.shelf_life_days %>"></label>
+                      </div>
+                      <small class="block">Por seguridad, la unidad de stock no puede cambiarse cuando ya existen movimientos o recetas.</small>
+                      <button class="small">Guardar producto</button>
+                    </form>
+                  </details>
+
+                  <details class="admin-edit supplier-config-edit">
+                    <summary>Presentación por proveedor</summary>
+                    <form method="post" action="/admin/products/<%= p.id %>/suppliers">
+                      <% if(!suppliers.filter(s=>s.active).length){ %><p class="muted tiny">No hay proveedores activos.</p><% } %>
+                      <% suppliers.filter(s=>s.active).forEach(s=>{ %>
+                        <% const cfg=configBySupplier.get(String(s.id)); %>
+                        <div class="supplier-config-row">
+                          <label class="check-label supplier-config-name">
+                            <input type="checkbox" name="supplier_enabled_<%= s.id %>" value="1" <%= cfg?'checked':'' %>>
+                            <span><%= s.name %></span>
+                          </label>
+                          <label>Presentación<input name="presentation_unit_<%= s.id %>" value="<%= cfg?cfg.presentation_unit:p.default_presentation_unit %>"></label>
+                          <label>Contenido<input type="number" step="0.001" min="0.001" name="content_per_presentation_<%= s.id %>" value="<%= cfg?cfg.content_per_presentation:p.default_content_per_presentation %>"></label>
+                          <label>Unidad
+                            <select name="content_unit_<%= s.id %>">
+                              <% ['kg','g','L','ml','unidad','feta'].forEach(unit=>{ %>
+                                <option value="<%= unit %>" <%= String(cfg?cfg.content_unit:p.default_content_unit)===unit?'selected':'' %>><%= unit %></option>
+                              <% }) %>
+                            </select>
+                          </label>
+                        </div>
+                      <% }) %>
+                      <button class="small">Guardar proveedores y presentaciones</button>
+                    </form>
+                  </details>
+
+                  <form method="post" action="/admin/products/<%= p.id %>/toggle">
+                    <button class="small secondary"><%= p.active?'Desactivar':'Activar' %></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>
 <%- include('partials/foot') %>

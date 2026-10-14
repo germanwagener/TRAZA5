@@ -13,6 +13,9 @@ Versión web de TRAZA5 construida con **Node.js + PostgreSQL**. No utiliza Pytho
 - Proveedores y productos maestros; el operador solo selecciona datos existentes.
 - Cada producto puede vincularse con uno o varios proveedores de su empresa.
 - En recepción, el proveedor se completa automáticamente cuando el producto tiene una sola opción y se filtra cuando tiene varias.
+- Cada producto define su unidad de stock y su presentación habitual de compra (por ejemplo, bidón de 5 L o bolsa de 25 kg).
+- Cada proveedor puede tener una presentación diferente para el mismo producto.
+- El ingreso convierte automáticamente las presentaciones recibidas a la unidad utilizada por stock, recetas y producción.
 - Se permiten nombres de producto repetidos; el código y los proveedores permiten diferenciarlos.
 - Ingreso diario de mercadería con proveedor, producto, marca, lote proveedor, cantidad, precio, fecha de ingreso y vencimiento.
 - Lote interno automático para cada ingreso.
@@ -28,8 +31,11 @@ Versión web de TRAZA5 construida con **Node.js + PostgreSQL**. No utiliza Pytho
 - Trazabilidad hacia atrás: lote final → elaboraciones → subproductos → materias primas → proveedor / ingreso / vencimiento.
 - Trazabilidad hacia adelante: materia prima o subproducto → todos los lotes que lo consumieron.
 - Ejercicio de trazabilidad por producto + lote.
-- Planillas filtrables e imprimibles / guardables como PDF desde el navegador.
+- Planillas de ingresos y elaboraciones filtrables por fecha y búsqueda, imprimibles o exportables a PDF desde el navegador.
+- Informes completos de trazabilidad imprimibles o exportables a PDF después de reconstruir el lote.
 - Auditoría de altas, accesos, cambios de contraseña y cambios de estado.
+- Buscadores rápidos en clientes, usuarios, proveedores, productos, sectores, recetas, ingresos, elaboración, stock y auditoría.
+- Edición administrativa en la misma pantalla para usuarios, proveedores, productos, presentaciones y sectores.
 - Diseño adaptable a PC, tablet y celular.
 
 ## Requisitos para ponerlo online
@@ -112,11 +118,24 @@ Usuario de prueba local: `admin` / `admin123`.
 3. Crear una empresa cliente y definir su cantidad inicial de sectores.
 4. Abrir esa empresa desde el selector superior.
 5. Renombrar, agregar o desactivar sectores.
-6. Cargar proveedores y productos de la empresa.
+6. Cargar proveedores y productos, indicando presentación y contenido (por ejemplo, bidón de 5 L).
 7. Cargar recetas y sus versiones.
 8. Crear el administrador u operadores de ese cliente.
 9. Registrar ingresos y elaboraciones.
 10. Probar una trazabilidad completa hacia atrás y hacia adelante.
+
+## Presentaciones y conversión automática
+
+La unidad de stock es la que utilizan las recetas y la elaboración. La presentación es la forma en que llega la mercadería. Por ejemplo:
+
+- Producto: salsa de tomate.
+- Unidad de stock: `L`.
+- Presentación: `bidón`.
+- Contenido: `5 L` por bidón.
+- Ingreso: `6 bidones`.
+- Stock generado automáticamente: `30 L`.
+
+Si un producto tiene un solo proveedor, TRAZA5 selecciona el proveedor y su presentación automáticamente. Si tiene varios, muestra únicamente los proveedores habilitados y usa la presentación configurada para el elegido.
 
 ## Recomendaciones para uso industrial real
 
@@ -132,6 +151,6 @@ Antes de usar el sistema como registro crítico de producción, conviene validar
 - Despachos/clientes para trazabilidad hasta destino comercial.
 - Modo recall/retiro con listado de lotes y clientes afectados.
 - Alertas de vencimiento y stock FEFO.
-- Exportación Excel y PDF con formato corporativo.
+- Exportación Excel para análisis complementarios.
 - Adjuntos (certificados, análisis, remitos, fotos).
 - Firma electrónica o doble aprobación para operaciones sensibles.

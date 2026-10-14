@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/db.js && node --check src/trace.js && node --check public/app.js"
+    "check": "node --check src/server.js && node --check src/db.js && node --check src/trace.js && node --check src/units.js && node --check public/app.js",
+    "test": "node --test"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

@@ -1,1 +1,66 @@
-<%- include('partials/head',{title:'Planillas · TRAZA5'}) %><%- include('partials/nav') %><main><div class="pagehead"><div><p class="eyebrow">DOCUMENTACIÓN</p><h1>Planillas de elaboración</h1><p class="muted">Filtrá antes de imprimir. El navegador permite imprimir o guardar directamente como PDF.</p></div></div><div class="toolbar no-print"><input class="filter" data-table="reportsTable" placeholder="Filtrar por lote, producto, sector, receta, usuario..."><button onclick="window.print()">Imprimir / Guardar PDF</button></div><section class="card printarea"><div class="tablewrap"><table id="reportsTable"><thead><tr><th>Fecha</th><th>Sector</th><th>Receta</th><th>Producto</th><th>Lote interno</th><th>Lote final</th><th>Cantidad</th><th>Estado</th><th>Usuario</th></tr></thead><tbody><% rows.forEach(r=>{ %><tr><td><%= new Date(r.produced_at).toLocaleString('es-AR') %></td><td><%= r.sector %></td><td><%= r.recipe %> v<%= r.version %></td><td><b><%= r.product %></b></td><td><code><%= r.internal_lot %></code></td><td><code><%= r.final_lot||'' %></code></td><td><%= r.qty %></td><td><span class="pill <%= r.status.toLowerCase() %>"><%= r.status %></span><% if(user.role==='admin'){ %><form method="post" action="/admin/batches/<%= r.id %>/status" class="statusform no-print"><select name="status"><option>LIBERADO</option><option>BLOQUEADO</option><option>RECHAZADO</option></select><button class="small">Cambiar</button></form><% } %></td><td><%= r.username %></td></tr><% }) %></tbody></table></div></section></main><%- include('partials/foot') %>
+<%- include('partials/head',{title:'Planillas · TRAZA5'}) %>
+<%- include('partials/nav') %>
+<main>
+  <div class="pagehead">
+    <div>
+      <p class="eyebrow">DOCUMENTACIÓN · <%= activeClient.name.toUpperCase() %></p>
+      <h1>Planillas de elaboración</h1>
+      <p class="muted">Elegí un período y TRAZA5 imprimirá únicamente las elaboraciones visibles.</p>
+    </div>
+  </div>
+
+  <div class="toolbar no-print print-controls" data-date-filter="reportsTable">
+    <label>Desde<input type="date" data-date-from></label>
+    <label>Hasta<input type="date" data-date-to></label>
+    <input class="filter" data-table="reportsTable" placeholder="Buscar lote, producto, sector, receta...">
+    <button type="button" class="secondary" data-date-today>Hoy</button>
+    <button type="button" class="secondary" data-date-clear>Ver todos</button>
+    <button type="button" onclick="window.print()">Imprimir / Exportar PDF</button>
+    <small>Para crear el PDF, elegí “Guardar como PDF” en la ventana de impresión.</small>
+  </div>
+
+  <section class="card printarea">
+    <div class="tablehead">
+      <div>
+        <h2>Registro de elaboraciones</h2>
+        <p class="muted print-filter-summary" data-print-summary="reportsTable">Período: Todos los registros</p>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="reportsTable">
+        <thead>
+          <tr><th>Fecha</th><th>Sector</th><th>Receta</th><th>Producto</th><th>Lote interno</th><th>Lote final</th><th>Cantidad</th><th>Estado</th><th>Usuario</th><th>Observaciones</th></tr>
+        </thead>
+        <tbody>
+          <% rows.forEach(r=>{ %>
+            <tr data-date="<%= r.produced_date %>">
+              <td><%= new Date(r.produced_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) %></td>
+              <td><%= r.sector %></td>
+              <td><%= r.recipe %> v<%= r.version %></td>
+              <td><b><%= r.product %></b></td>
+              <td><code><%= r.internal_lot %></code></td>
+              <td><code><%= r.final_lot||'' %></code></td>
+              <td><%= r.qty %> <%= r.unit %></td>
+              <td>
+                <span class="pill <%= r.status.toLowerCase() %>"><%= r.status %></span>
+                <% if(['superadmin','admin'].includes(user.role)){ %>
+                  <form method="post" action="/admin/batches/<%= r.id %>/status" class="statusform no-print">
+                    <select name="status">
+                      <option <%= r.status==='LIBERADO'?'selected':'' %>>LIBERADO</option>
+                      <option <%= r.status==='BLOQUEADO'?'selected':'' %>>BLOQUEADO</option>
+                      <option <%= r.status==='RECHAZADO'?'selected':'' %>>RECHAZADO</option>
+                    </select>
+                    <button class="small">Cambiar</button>
+                  </form>
+                <% } %>
+              </td>
+              <td><%= r.username %></td>
+              <td><%= r.notes||'' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<%- include('partials/foot') %>

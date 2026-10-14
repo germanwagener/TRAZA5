@@ -23,12 +23,8 @@
             </select>
           </label>
         <% } %>
-        <label>Usuario
-          <input name="username" autocomplete="off" required>
-        </label>
-        <label>Contraseña inicial
-          <input type="password" name="password" minlength="8" required>
-        </label>
+        <label>Usuario<input name="username" autocomplete="off" required></label>
+        <label>Contraseña inicial<input type="password" name="password" minlength="8" required></label>
         <% if(superadmin){ %>
           <label>Rol
             <select name="role">
@@ -46,26 +42,55 @@
 
     <section class="card">
       <div class="tablehead">
-        <h2>Usuarios existentes</h2>
+        <div>
+          <h2>Usuarios existentes</h2>
+          <p class="muted">Podés editar el nombre, el rol o asignar una nueva contraseña.</p>
+        </div>
         <input class="filter" data-table="usersTable" placeholder="Buscar usuario o empresa...">
       </div>
       <div class="tablewrap">
         <table id="usersTable">
-          <thead>
-            <tr><th>Usuario</th><th>Empresa</th><th>Rol</th><th>Estado</th><th></th></tr>
-          </thead>
+          <thead><tr><th>Usuario</th><th>Empresa</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody>
             <% rows.forEach(r=>{ %>
-              <tr>
+              <tr class="<%= r.active?'':'is-inactive' %>">
                 <td><b><%= r.username %></b></td>
                 <td><%= r.client_name %></td>
                 <td><%= r.role==='admin'?'Administrador de empresa':'Operador' %></td>
                 <td><span class="pill <%= r.active?'liberado':'rechazado' %>"><%= r.active?'ACTIVO':'INACTIVO' %></span></td>
                 <td>
                   <% if(Number(r.id)!==Number(user.id) && (superadmin || r.role==='operator')){ %>
-                    <form method="post" action="/admin/users/<%= r.id %>/toggle">
-                      <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
-                    </form>
+                    <div class="row-actions">
+                      <details class="admin-edit user-edit">
+                        <summary>Editar</summary>
+                        <form method="post" action="/admin/users/<%= r.id %>/update">
+                          <label>Usuario<input name="username" value="<%= r.username %>" required></label>
+                          <% if(superadmin){ %>
+                            <label>Empresa
+                              <select name="client_id" required>
+                                <% clients.forEach(c=>{ %><option value="<%= c.id %>" <%= Number(r.client_id)===Number(c.id)?'selected':'' %>><%= c.name %></option><% }) %>
+                              </select>
+                            </label>
+                            <label>Rol
+                              <select name="role">
+                                <option value="operator" <%= r.role==='operator'?'selected':'' %>>Operador</option>
+                                <option value="admin" <%= r.role==='admin'?'selected':'' %>>Administrador de empresa</option>
+                              </select>
+                            </label>
+                          <% } else { %>
+                            <input type="hidden" name="role" value="operator">
+                          <% } %>
+                          <label>Nueva contraseña
+                            <input type="password" name="password" minlength="8" autocomplete="new-password">
+                            <small>Dejala vacía para conservar la actual.</small>
+                          </label>
+                          <button class="small">Guardar usuario</button>
+                        </form>
+                      </details>
+                      <form method="post" action="/admin/users/<%= r.id %>/toggle">
+                        <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
+                      </form>
+                    </div>
                   <% } %>
                 </td>
               </tr>

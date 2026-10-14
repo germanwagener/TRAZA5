@@ -7,6 +7,7 @@ const pgSession = require('connect-pg-simple')(session);
 const bcrypt = require('bcryptjs');
 const { pool, initDb, audit, hasDatabaseConfig, databaseConfigSource } = require('./db');
 const { backward, forward } = require('./trace');
+const { baseQuantity, displayQuantity, normalizedUnit } = require('./units');
 
 const app = express();
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
@@ -197,7 +198,7 @@ app.get('/', requireAuth, requireClient, asyncRoute(async (req, res) => {
     pool.query('SELECT COUNT(*)::int n FROM receipts WHERE client_id=$1', [clientId]),
     pool.query('SELECT COUNT(*)::int n FROM batches WHERE client_id=$1', [clientId]),
     pool.query(
-      'SELECT b.id,b.internal_lot,b.final_lot,b.qty,b.produced_at,b.status,p.name product,s.name sector FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id WHERE b.client_id=$1 ORDER BY b.created_at DESC LIMIT 12',
+      'SELECT b.id,b.internal_lot,b.final_lot,b.qty,b.produced_at,b.status,p.name product,p.unit,s.name sector FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id WHERE b.client_id=$1 ORDER BY b.created_at DESC LIMIT 12',
       [clientId]
     )
   ]);
@@ -299,8 +300,8 @@ app.get('/admin/users', requireAdmin, requireClient, asyncRoute(async (req, res)
   const superadmin = isSuperAdmin(req);
   const rows = (await pool.query(
     superadmin
-      ? "SELECT u.id,u.username,u.role,u.active,u.created_at,c.name client_name FROM users u LEFT JOIN clients c ON c.id=u.client_id WHERE u.role<>'superadmin' ORDER BY c.name,u.username"
-      : 'SELECT u.id,u.username,u.role,u.active,u.created_at,c.name client_name FROM users u JOIN clients c ON c.id=u.client_id WHERE u.client_id=$1 ORDER BY u.username',
+      ? "SELECT u.id,u.username,u.role,u.client_id,u.active,u.created_at,c.name client_name FROM users u LEFT JOIN clients c ON c.id=u.client_id WHERE u.role<>'superadmin' ORDER BY c.name,u.username"
+      : 'SELECT u.id,u.username,u.role,u.client_id,u.active,u.created_at,c.name client_name FROM users u JOIN clients c ON c.id=u.client_id WHERE u.client_id=$1 ORDER BY u.username',
     superadmin ? [] : [clientId]
   )).rows;
   const clients = superadmin
@@ -337,6 +338,55 @@ app.post('/admin/users', requireAdmin, requireClient, asyncRoute(async (req, res
     flash(req, 'ok', 'Usuario creado y vinculado a su empresa.');
   } catch (error) {
     flash(req, 'error', error.code === '23505' ? 'Ese nombre de usuario ya existe.' : 'No se pudo crear el usuario.');
+  }
+  res.redirect('/admin/users');
+}));
+
+app.post('/admin/users/:id/update', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const superadmin = isSuperAdmin(req);
+  try {
+    const targetResult = await pool.query(
+      superadmin
+        ? "SELECT id,client_id,role FROM users WHERE id=$1 AND id<>$2 AND role<>'superadmin'"
+        : "SELECT id,client_id,role FROM users WHERE id=$1 AND id<>$2 AND client_id=$3 AND role='operator'",
+      superadmin
+        ? [req.params.id, req.session.user.id]
+        : [req.params.id, req.session.user.id, clientId]
+    );
+    const target = targetResult.rows[0];
+    if (!target) throw new Error('Ese usuario no puede editarse desde esta empresa.');
+
+    const targetClientId = superadmin ? Number(req.body.client_id || target.client_id) : clientId;
+    const company = await pool.query('SELECT id FROM clients WHERE id=$1 AND active=TRUE', [targetClientId]);
+    if (!company.rows[0]) throw new Error('Seleccioná una empresa activa.');
+
+    const username = String(req.body.username || '').trim();
+    const role = superadmin && req.body.role === 'admin' ? 'admin' : 'operator';
+    const password = String(req.body.password || '');
+    if (!username) throw new Error('Ingresá el nombre de usuario.');
+    if (password && password.length < 8) throw new Error('La nueva contraseña debe tener al menos 8 caracteres.');
+
+    if (password) {
+      await pool.query(
+        'UPDATE users SET username=$1,role=$2,client_id=$3,password_hash=$4 WHERE id=$5',
+        [username, role, targetClientId, await bcrypt.hash(password, 12), target.id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE users SET username=$1,role=$2,client_id=$3 WHERE id=$4',
+        [username, role, targetClientId, target.id]
+      );
+    }
+    await audit(req.session.user.id, targetClientId, 'UPDATE', 'user', target.id, {
+      username,
+      role,
+      client_id: targetClientId,
+      password_changed: Boolean(password)
+    });
+    flash(req, 'ok', 'Usuario actualizado.');
+  } catch (error) {
+    flash(req, 'error', error.code === '23505' ? 'Ese nombre de usuario ya existe.' : (error.message || 'No se pudo actualizar el usuario.'));
   }
   res.redirect('/admin/users');
 }));
@@ -380,7 +430,7 @@ app.get('/admin/masters', requireAdmin, requireClient, asyncRoute(async (req, re
   const [suppliers, products, sectors] = await Promise.all([
     pool.query('SELECT * FROM suppliers WHERE client_id=$1 ORDER BY active DESC,name', [clientId]),
     pool.query(
-      "SELECT p.*,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 GROUP BY p.id ORDER BY p.active DESC,p.name",
+      "SELECT p.*,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names,COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('supplier_id',ps.supplier_id,'supplier_name',s.name,'presentation_unit',ps.presentation_unit,'content_per_presentation',ps.content_per_presentation,'content_unit',ps.content_unit) ORDER BY s.name) FILTER (WHERE ps.supplier_id IS NOT NULL),'[]'::jsonb) supplier_configs FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 GROUP BY p.id ORDER BY p.active DESC,p.name",
       [clientId]
     ),
     pool.query('SELECT * FROM sectors WHERE client_id=$1 ORDER BY active DESC,position,name', [clientId])
@@ -407,11 +457,47 @@ app.post('/admin/suppliers', requireAdmin, requireClient, asyncRoute(async (req,
   res.redirect('/admin/masters');
 }));
 
+app.post('/admin/suppliers/:id/update', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) throw new Error('Ingresá el nombre del proveedor.');
+    const result = await pool.query(
+      'UPDATE suppliers SET name=$1,tax_id=$2,contact=$3 WHERE id=$4 AND client_id=$5 RETURNING id',
+      [name, req.body.tax_id || '', req.body.contact || '', req.params.id, clientId]
+    );
+    if (!result.rows[0]) throw new Error('El proveedor no pertenece a la empresa seleccionada.');
+    await audit(req.session.user.id, clientId, 'UPDATE', 'supplier', req.params.id, { name });
+    flash(req, 'ok', 'Proveedor actualizado.');
+  } catch (error) {
+    flash(req, 'error', error.code === '23505' ? 'Ya existe un proveedor con ese nombre en esta empresa.' : (error.message || 'No se pudo actualizar el proveedor.'));
+  }
+  res.redirect('/admin/masters');
+}));
+
+app.post('/admin/suppliers/:id/toggle', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const result = await pool.query(
+    'UPDATE suppliers SET active=NOT active WHERE id=$1 AND client_id=$2 RETURNING id,active',
+    [req.params.id, clientId]
+  );
+  if (result.rows[0]) {
+    await audit(req.session.user.id, clientId, 'TOGGLE', 'supplier', req.params.id, { active: result.rows[0].active });
+    flash(req, 'ok', result.rows[0].active ? 'Proveedor activado.' : 'Proveedor desactivado.');
+  }
+  res.redirect('/admin/masters');
+}));
+
 app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const stockUnit = String(req.body.unit || '').trim();
+    const presentationUnit = String(req.body.default_presentation_unit || 'unidad').trim();
+    const contentPerPresentation = Number(req.body.default_content_per_presentation || 1);
+    const contentUnit = String(req.body.default_content_unit || stockUnit).trim();
+    baseQuantity(1, contentPerPresentation, contentUnit, stockUnit);
     const supplierIds = [...new Set(
       [].concat(req.body.supplier_id || []).filter(Boolean).map(Number)
     )];
@@ -425,21 +511,24 @@ app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, 
       }
     }
     const inserted = await client.query(
-      "INSERT INTO products(client_id,code,name,category,unit,default_brand,shelf_life_days) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7) RETURNING id",
+      "INSERT INTO products(client_id,code,name,category,unit,default_presentation_unit,default_content_per_presentation,default_content_unit,default_brand,shelf_life_days) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
       [
         clientId,
         req.body.code || '',
         String(req.body.name || '').trim(),
         req.body.category,
-        req.body.unit,
+        stockUnit,
+        presentationUnit,
+        contentPerPresentation,
+        contentUnit,
         req.body.default_brand || '',
         Number(req.body.shelf_life_days || 0)
       ]
     );
     for (const supplierId of supplierIds) {
       await client.query(
-        'INSERT INTO product_suppliers(client_id,product_id,supplier_id) VALUES($1,$2,$3)',
-        [clientId, inserted.rows[0].id, supplierId]
+        'INSERT INTO product_suppliers(client_id,product_id,supplier_id,presentation_unit,content_per_presentation,content_unit) VALUES($1,$2,$3,$4,$5,$6)',
+        [clientId, inserted.rows[0].id, supplierId, presentationUnit, contentPerPresentation, contentUnit]
       );
     }
     await client.query('COMMIT');
@@ -461,19 +550,102 @@ app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, 
   res.redirect('/admin/masters');
 }));
 
+app.post('/admin/products/:id/update', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existing = (await client.query(
+      'SELECT * FROM products WHERE id=$1 AND client_id=$2 FOR UPDATE',
+      [req.params.id, clientId]
+    )).rows[0];
+    if (!existing) throw new Error('El producto no pertenece a la empresa seleccionada.');
+
+    const name = String(req.body.name || '').trim();
+    const stockUnit = String(req.body.unit || '').trim();
+    const presentationUnit = String(req.body.default_presentation_unit || 'unidad').trim();
+    const contentPerPresentation = Number(req.body.default_content_per_presentation || 1);
+    const contentUnit = String(req.body.default_content_unit || stockUnit).trim();
+    if (!name || !stockUnit) throw new Error('Completá el nombre y la unidad de stock.');
+    baseQuantity(1, contentPerPresentation, contentUnit, stockUnit);
+
+    if (normalizedUnit(stockUnit) !== normalizedUnit(existing.unit)) {
+      const usage = (await client.query(
+        `SELECT
+          EXISTS(SELECT 1 FROM receipts WHERE client_id=$1 AND product_id=$2) OR
+          EXISTS(SELECT 1 FROM batches WHERE client_id=$1 AND product_id=$2) OR
+          EXISTS(SELECT 1 FROM recipes WHERE client_id=$1 AND output_product_id=$2) OR
+          EXISTS(SELECT 1 FROM recipe_items ri JOIN recipes r ON r.id=ri.recipe_id WHERE r.client_id=$1 AND ri.product_id=$2) AS used`,
+        [clientId, req.params.id]
+      )).rows[0];
+      if (usage.used) {
+        throw new Error('La unidad de stock no puede cambiarse porque el producto ya tiene movimientos o recetas. Podés modificar los demás datos.');
+      }
+      const configurations = (await client.query(
+        'SELECT content_per_presentation,content_unit FROM product_suppliers WHERE product_id=$1 AND client_id=$2',
+        [req.params.id, clientId]
+      )).rows;
+      configurations.forEach(row => baseQuantity(1, row.content_per_presentation, row.content_unit, stockUnit));
+    }
+
+    await client.query(
+      `UPDATE products
+       SET code=NULLIF($1,''),name=$2,category=$3,unit=$4,
+           default_presentation_unit=$5,default_content_per_presentation=$6,
+           default_content_unit=$7,default_brand=$8,shelf_life_days=$9
+       WHERE id=$10 AND client_id=$11`,
+      [
+        req.body.code || '', name, req.body.category, stockUnit,
+        presentationUnit, contentPerPresentation, contentUnit,
+        req.body.default_brand || '', Math.max(0, Number(req.body.shelf_life_days || 0)),
+        req.params.id, clientId
+      ]
+    );
+    await client.query('COMMIT');
+    await audit(req.session.user.id, clientId, 'UPDATE', 'product', req.params.id, { name, unit: stockUnit });
+    flash(req, 'ok', 'Producto actualizado.');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    flash(req, 'error', error.code === '23505'
+      ? 'Ese código de producto ya existe dentro de esta empresa.'
+      : (error.message || 'No se pudo actualizar el producto.'));
+  } finally {
+    client.release();
+  }
+  res.redirect('/admin/masters');
+}));
+
+app.post('/admin/products/:id/toggle', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const result = await pool.query(
+    'UPDATE products SET active=NOT active WHERE id=$1 AND client_id=$2 RETURNING id,active',
+    [req.params.id, clientId]
+  );
+  if (result.rows[0]) {
+    await audit(req.session.user.id, clientId, 'TOGGLE', 'product', req.params.id, { active: result.rows[0].active });
+    flash(req, 'ok', result.rows[0].active ? 'Producto activado.' : 'Producto desactivado.');
+  }
+  res.redirect('/admin/masters');
+}));
+
 app.post('/admin/products/:id/suppliers', requireAdmin, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const product = await client.query(
-      'SELECT id FROM products WHERE id=$1 AND client_id=$2',
+      'SELECT id,unit,default_presentation_unit,default_content_per_presentation,default_content_unit FROM products WHERE id=$1 AND client_id=$2',
       [req.params.id, clientId]
     );
     if (!product.rows[0]) throw new Error('El producto no pertenece a la empresa seleccionada.');
-    const supplierIds = [...new Set(
-      [].concat(req.body.supplier_id || []).filter(Boolean).map(Number)
-    )];
+    const supplierRows = (await client.query(
+      'SELECT id FROM suppliers WHERE client_id=$1 AND active=TRUE ORDER BY id',
+      [clientId]
+    )).rows;
+    const usesDetailedForm = supplierRows.some(row => Object.prototype.hasOwnProperty.call(req.body, 'supplier_enabled_' + row.id));
+    const supplierIds = usesDetailedForm
+      ? supplierRows.filter(row => req.body['supplier_enabled_' + row.id]).map(row => Number(row.id))
+      : [...new Set([].concat(req.body.supplier_id || []).filter(Boolean).map(Number))];
     if (supplierIds.length) {
       const validSuppliers = await client.query(
         'SELECT id FROM suppliers WHERE client_id=$1 AND active=TRUE AND id=ANY($2::bigint[])',
@@ -488,9 +660,19 @@ app.post('/admin/products/:id/suppliers', requireAdmin, requireClient, asyncRout
       [req.params.id, clientId]
     );
     for (const supplierId of supplierIds) {
+      const presentationUnit = usesDetailedForm
+        ? String(req.body['presentation_unit_' + supplierId] || product.rows[0].default_presentation_unit).trim()
+        : product.rows[0].default_presentation_unit;
+      const contentPerPresentation = usesDetailedForm
+        ? Number(req.body['content_per_presentation_' + supplierId] || product.rows[0].default_content_per_presentation)
+        : Number(product.rows[0].default_content_per_presentation);
+      const contentUnit = usesDetailedForm
+        ? String(req.body['content_unit_' + supplierId] || product.rows[0].default_content_unit).trim()
+        : product.rows[0].default_content_unit;
+      baseQuantity(1, contentPerPresentation, contentUnit, product.rows[0].unit);
       await client.query(
-        'INSERT INTO product_suppliers(client_id,product_id,supplier_id) VALUES($1,$2,$3)',
-        [clientId, req.params.id, supplierId]
+        'INSERT INTO product_suppliers(client_id,product_id,supplier_id,presentation_unit,content_per_presentation,content_unit) VALUES($1,$2,$3,$4,$5,$6)',
+        [clientId, req.params.id, supplierId, presentationUnit, contentPerPresentation, contentUnit]
       );
     }
     await client.query('COMMIT');
@@ -633,16 +815,29 @@ app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, r
   res.redirect('/admin/recipes');
 }));
 
+app.post('/admin/recipes/:id/toggle', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const result = await pool.query(
+    'UPDATE recipes SET active=NOT active WHERE id=$1 AND client_id=$2 RETURNING id,active',
+    [req.params.id, clientId]
+  );
+  if (result.rows[0]) {
+    await audit(req.session.user.id, clientId, 'TOGGLE', 'recipe', req.params.id, { active: result.rows[0].active });
+    flash(req, 'ok', result.rows[0].active ? 'Receta activada.' : 'Receta desactivada.');
+  }
+  res.redirect('/admin/recipes');
+}));
+
 app.get('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const [suppliers, products, rows] = await Promise.all([
     pool.query('SELECT id,name FROM suppliers WHERE client_id=$1 AND active=TRUE ORDER BY name', [clientId]),
     pool.query(
-      "SELECT p.id,p.name,p.category,p.unit,p.default_brand,p.shelf_life_days,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 AND p.active=TRUE GROUP BY p.id ORDER BY p.name",
+      "SELECT p.id,p.name,p.category,p.unit,p.default_brand,p.shelf_life_days,p.default_presentation_unit,p.default_content_per_presentation,p.default_content_unit,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE s.id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names,COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('supplier_id',ps.supplier_id,'presentation_unit',ps.presentation_unit,'content_per_presentation',ps.content_per_presentation,'content_unit',ps.content_unit) ORDER BY s.name) FILTER (WHERE s.id IS NOT NULL),'[]'::jsonb) supplier_configs FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id AND s.active=TRUE WHERE p.client_id=$1 AND p.active=TRUE GROUP BY p.id ORDER BY p.name",
       [clientId]
     ),
     pool.query(
-      'SELECT r.*,p.name product,s.name supplier,u.username FROM receipts r JOIN products p ON p.id=r.product_id AND p.client_id=r.client_id JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id JOIN users u ON u.id=r.created_by WHERE r.client_id=$1 ORDER BY r.created_at DESC LIMIT 300',
+      'SELECT r.*,p.name product,s.name supplier,u.username FROM receipts r JOIN products p ON p.id=r.product_id AND p.client_id=r.client_id JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id JOIN users u ON u.id=r.created_by WHERE r.client_id=$1 ORDER BY r.received_at DESC,r.created_at DESC',
       [clientId]
     )
   ]);
@@ -653,7 +848,15 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   const clientId = currentClientId(req);
   const [productResult, supplierResult] = await Promise.all([
     pool.query(
-      'SELECT p.unit,p.shelf_life_days,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.client_id=p.client_id) has_configured_suppliers,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.supplier_id=$3 AND ps.client_id=p.client_id) supplier_allowed FROM products p WHERE p.id=$1 AND p.client_id=$2 AND p.active=TRUE',
+      `SELECT p.unit,p.shelf_life_days,p.default_presentation_unit,p.default_content_per_presentation,p.default_content_unit,
+              EXISTS(SELECT 1 FROM product_suppliers configured WHERE configured.product_id=p.id AND configured.client_id=p.client_id) has_configured_suppliers,
+              (ps.id IS NOT NULL) supplier_allowed,
+              ps.presentation_unit supplier_presentation_unit,
+              ps.content_per_presentation supplier_content_per_presentation,
+              ps.content_unit supplier_content_unit
+       FROM products p
+       LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id AND ps.supplier_id=$3
+       WHERE p.id=$1 AND p.client_id=$2 AND p.active=TRUE`,
       [req.body.product_id, clientId, req.body.supplier_id]
     ),
     pool.query(
@@ -671,6 +874,28 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
     return res.redirect('/receipts');
   }
 
+  let presentationQty;
+  let presentationUnit;
+  let contentPerPresentation;
+  let contentUnit;
+  let totalQty;
+  try {
+    presentationQty = Number(req.body.presentation_qty || req.body.qty);
+    presentationUnit = String(
+      req.body.presentation_unit || product.supplier_presentation_unit || product.default_presentation_unit || 'unidad'
+    ).trim();
+    contentPerPresentation = Number(
+      req.body.content_per_presentation || product.supplier_content_per_presentation || product.default_content_per_presentation || 1
+    );
+    contentUnit = String(
+      req.body.content_unit || product.supplier_content_unit || product.default_content_unit || product.unit
+    ).trim();
+    totalQty = baseQuantity(presentationQty, contentPerPresentation, contentUnit, product.unit);
+  } catch (error) {
+    flash(req, 'error', error.message || 'Revisá la cantidad y la presentación del producto.');
+    return res.redirect('/receipts');
+  }
+
   let expires = req.body.expires_at || null;
   if (!expires && Number(product.shelf_life_days) > 0) {
     const date = new Date(req.body.received_at + 'T12:00:00Z');
@@ -679,7 +904,7 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   }
   const lot = 'MP-' + clientId + '-' + Date.now().toString(36).toUpperCase();
   const inserted = await pool.query(
-    'INSERT INTO receipts(client_id,supplier_id,product_id,brand,supplier_lot,internal_lot,qty,unit,unit_price,received_at,expires_at,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id',
+    'INSERT INTO receipts(client_id,supplier_id,product_id,brand,supplier_lot,internal_lot,presentation_qty,presentation_unit,content_per_presentation,content_unit,qty,unit,unit_price,received_at,expires_at,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id',
     [
       clientId,
       req.body.supplier_id,
@@ -687,7 +912,11 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
       req.body.brand || '',
       req.body.supplier_lot || '',
       lot,
-      Number(req.body.qty),
+      presentationQty,
+      presentationUnit,
+      contentPerPresentation,
+      contentUnit,
+      totalQty,
       product.unit,
       Number(req.body.unit_price || 0),
       req.body.received_at,
@@ -698,9 +927,14 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   );
   await audit(req.session.user.id, clientId, 'CREATE', 'receipt', inserted.rows[0].id, {
     internal_lot: lot,
-    qty: req.body.qty
+    presentation_qty: presentationQty,
+    presentation_unit: presentationUnit,
+    content_per_presentation: contentPerPresentation,
+    content_unit: contentUnit,
+    qty: totalQty,
+    unit: product.unit
   });
-  flash(req, 'ok', 'Ingreso registrado. Lote interno: ' + lot);
+  flash(req, 'ok', 'Ingreso registrado: ' + displayQuantity(presentationQty) + ' ' + presentationUnit + ' = ' + displayQuantity(totalQty) + ' ' + product.unit + '. Lote interno: ' + lot);
   res.redirect('/receipts');
 }));
 
@@ -890,7 +1124,7 @@ app.post('/admin/batches/:id/status', requireAdmin, requireClient, asyncRoute(as
 app.get('/reports', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const rows = (await pool.query(
-    'SELECT b.*,p.name product,s.name sector,r.name recipe,r.version,u.username FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id JOIN recipes r ON r.id=b.recipe_id AND r.client_id=b.client_id JOIN users u ON u.id=b.created_by WHERE b.client_id=$1 ORDER BY b.produced_at DESC LIMIT 1000',
+    "SELECT b.*,TO_CHAR(b.produced_at AT TIME ZONE 'America/Argentina/Buenos_Aires','YYYY-MM-DD') produced_date,p.name product,p.unit,s.name sector,r.name recipe,r.version,u.username FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id JOIN recipes r ON r.id=b.recipe_id AND r.client_id=b.client_id JOIN users u ON u.id=b.created_by WHERE b.client_id=$1 ORDER BY b.produced_at DESC",
     [clientId]
   )).rows;
   res.render('reports', { rows });
