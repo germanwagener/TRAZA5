@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS recipes (
   name TEXT NOT NULL,
   sector_id BIGINT NOT NULL REFERENCES sectors(id),
   output_product_id BIGINT NOT NULL REFERENCES products(id),
+  secondary_output_product_id BIGINT REFERENCES products(id),
   output_qty NUMERIC(14,3) NOT NULL DEFAULT 1,
   version TEXT NOT NULL DEFAULT '1.0',
   notes TEXT DEFAULT '',
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS recipe_items (
   recipe_id BIGINT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES products(id),
   qty NUMERIC(14,3) NOT NULL CHECK(qty > 0),
+  output_scope TEXT NOT NULL DEFAULT 'both' CHECK(output_scope IN ('both','primary','secondary')),
   UNIQUE(recipe_id,product_id)
 );
 
@@ -116,6 +118,8 @@ CREATE TABLE IF NOT EXISTS batches (
   internal_lot TEXT NOT NULL,
   final_lot TEXT,
   qty NUMERIC(14,3) NOT NULL CHECK(qty > 0),
+  production_group TEXT,
+  split_role TEXT NOT NULL DEFAULT 'single' CHECK(split_role IN ('single','primary','secondary')),
   produced_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'LIBERADO' CHECK(status IN ('LIBERADO','BLOQUEADO','RECHAZADO')),
   notes TEXT DEFAULT '',
@@ -162,6 +166,22 @@ ALTER TABLE receipts ADD COLUMN IF NOT EXISTS presentation_qty NUMERIC(14,3);
 ALTER TABLE receipts ADD COLUMN IF NOT EXISTS presentation_unit TEXT;
 ALTER TABLE receipts ADD COLUMN IF NOT EXISTS content_per_presentation NUMERIC(14,3);
 ALTER TABLE receipts ADD COLUMN IF NOT EXISTS content_unit TEXT;
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS secondary_output_product_id BIGINT REFERENCES products(id);
+ALTER TABLE recipe_items ADD COLUMN IF NOT EXISTS output_scope TEXT NOT NULL DEFAULT 'both';
+ALTER TABLE batches ADD COLUMN IF NOT EXISTS production_group TEXT;
+ALTER TABLE batches ADD COLUMN IF NOT EXISTS split_role TEXT NOT NULL DEFAULT 'single';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='recipe_items_output_scope_check') THEN
+    ALTER TABLE recipe_items
+      ADD CONSTRAINT recipe_items_output_scope_check CHECK(output_scope IN ('both','primary','secondary'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='batches_split_role_check') THEN
+    ALTER TABLE batches
+      ADD CONSTRAINT batches_split_role_check CHECK(split_role IN ('single','primary','secondary'));
+  END IF;
+END $$;
 
 UPDATE products
 SET default_presentation_unit=COALESCE(default_presentation_unit,unit),
@@ -283,6 +303,7 @@ CREATE INDEX IF NOT EXISTS idx_batches_client_lot ON batches(client_id,internal_
 CREATE INDEX IF NOT EXISTS idx_batches_client_final_lot ON batches(client_id,final_lot);
 CREATE INDEX IF NOT EXISTS idx_batches_client_product ON batches(client_id,product_id);
 CREATE INDEX IF NOT EXISTS idx_batches_client_date ON batches(client_id,produced_at DESC);
+CREATE INDEX IF NOT EXISTS idx_batches_production_group ON batches(client_id,production_group);
 CREATE INDEX IF NOT EXISTS idx_batch_inputs_source ON batch_inputs(source_type,source_id);
 CREATE INDEX IF NOT EXISTS idx_audit_client_created ON audit_log(client_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);

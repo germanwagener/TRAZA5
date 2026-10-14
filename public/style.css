@@ -273,6 +273,8 @@ footer strong { color: var(--ink); font-size: 13px; }
 .split { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
 .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 .formgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.production-output-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.production-output-grid[hidden] { display: none; }
 .wide { grid-column: 1 / -1; }
 
 label {
@@ -399,6 +401,7 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
 .recipe-row,
 .source-row,
 .sector-edit { display: grid; grid-template-columns: 1fr 180px auto; gap: 8px; margin-bottom: 8px; }
+.recipe-row { grid-template-columns: minmax(220px, 1fr) 150px 190px auto; }
 .sector-edit { grid-template-columns: 1fr 70px auto; }
 .short { width: 70px; }
 .source-row { grid-template-columns: 1.1fr 2fr 160px auto; align-items: end; }
@@ -425,6 +428,10 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
 .client-name-form { display: flex; gap: 7px; min-width: 280px; }
 .client-name-form input { min-width: 175px; }
 .row-actions { display: flex; align-items: center; gap: 6px; }
+.recipe-split-config { min-width: 260px; margin-bottom: 7px; }
+.recipe-split-config summary { color: var(--accent-deep); cursor: pointer; font-weight: 800; margin-bottom: 8px; }
+.recipe-split-config form { background: var(--silver-soft); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.recipe-split-config label { min-width: 230px; }
 .new-sector-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 15px; }
 .sector-list { display: flex; flex-direction: column; gap: 9px; }
 .sector-manage { display: grid; grid-template-columns: 1fr auto; gap: 7px; align-items: start; }
@@ -607,6 +614,7 @@ tr.is-inactive { opacity: .62; }
   .stats,
   .sectors,
   .formgrid,
+  .production-output-grid,
   .traceform { grid-template-columns: 1fr; }
   .sectors div:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -17px; }
   .recipe-row,

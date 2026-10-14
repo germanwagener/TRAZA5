@@ -36,7 +36,7 @@
             <tr data-date="<%= r.produced_date %>">
               <td><%= new Date(r.produced_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) %></td>
               <td><%= r.sector %></td>
-              <td><%= r.recipe %> v<%= r.version %></td>
+              <td><%= r.recipe %> v<%= r.version %><% if(r.production_group){ %><small class="block">Dividida · <%= r.production_group %></small><% } %></td>
               <td><b><%= r.product %></b></td>
               <td><code><%= r.internal_lot %></code></td>
               <td><code><%= r.final_lot||'' %></code></td>

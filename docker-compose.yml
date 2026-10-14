@@ -19,8 +19,8 @@ services:
       NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgresql://traza5:traza5_local@db:5432/traza5
-      SESSION_SECRET: CAMBIAR-ESTE-SECRETO-LOCAL
+      SESSION_SECRET: ${SESSION_SECRET:?Defina SESSION_SECRET}
       ADMIN_USER: admin
-      ADMIN_INITIAL_PASSWORD: admin123
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Defina ADMIN_INITIAL_PASSWORD}
 volumes:
   traza5_pgdata:

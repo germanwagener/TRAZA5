@@ -261,12 +261,55 @@ function addRecipeItem() {
   if (!box || !window.TRAZA_PRODUCTS) return;
   const row = document.createElement('div');
   row.className = 'recipe-row';
-  row.innerHTML = `<select name="input_product_id">${window.TRAZA_PRODUCTS.map(product => `<option value="${product.id}">${escapeHtml(product.name)} · ${escapeHtml(product.unit)}${product.supplier_names ? ' · ' + escapeHtml(product.supplier_names) : ''}</option>`).join('')}</select><input type="number" step="0.001" min="0" name="input_qty" placeholder="Cantidad"><button type="button" class="secondary small">Quitar</button>`;
+  row.innerHTML = `<select name="input_product_id">${window.TRAZA_PRODUCTS.map(product => `<option value="${product.id}">${escapeHtml(product.name)} · ${escapeHtml(product.unit)}${product.supplier_names ? ' · ' + escapeHtml(product.supplier_names) : ''}</option>`).join('')}</select><input type="number" step="0.001" min="0" name="input_qty" placeholder="Cantidad"><select name="input_scope" aria-label="Producto al que corresponde el ingrediente"><option value="both">Ambos productos</option><option value="primary">Solo producto 1</option><option value="secondary">Solo producto 2</option></select><button type="button" class="secondary small">Quitar</button>`;
   row.querySelector('button').addEventListener('click', () => row.remove());
   box.appendChild(row);
 }
 
 let currentRecipeItems = [];
+let currentProductionRecipe = null;
+
+function productionScopeLabel(scope, recipe) {
+  if (scope === 'primary') return `solo ${recipe.output_product}`;
+  if (scope === 'secondary') return `solo ${recipe.secondary_output_product}`;
+  return recipe.secondary_output_product ? 'masa / componente común de ambos productos' : 'componente de la elaboración';
+}
+
+function updateProductionOutputFields(recipe) {
+  const single = document.getElementById('singleOutputField');
+  const split = document.getElementById('splitOutputFields');
+  const singleInput = document.querySelector('input[name="output_qty"]');
+  const primaryInput = document.querySelector('input[name="primary_output_qty"]');
+  const secondaryInput = document.querySelector('input[name="secondary_output_qty"]');
+  const isSplit = Boolean(recipe?.secondary_output_product_id);
+  if (single) single.hidden = isSplit;
+  if (split) split.hidden = !isSplit;
+  if (singleInput) singleInput.required = !isSplit;
+  if (primaryInput) primaryInput.required = isSplit;
+  if (secondaryInput) secondaryInput.required = isSplit;
+  const primaryName = document.getElementById('primaryOutputName');
+  const secondaryName = document.getElementById('secondaryOutputName');
+  if (primaryName) primaryName.textContent = recipe?.output_product || 'Producto 1';
+  if (secondaryName) secondaryName.textContent = recipe?.secondary_output_product || 'Producto 2';
+}
+
+function scaleProductionInputs() {
+  if (!currentProductionRecipe) return;
+  const nominal = Number(currentProductionRecipe.output_qty || 1);
+  const isSplit = Boolean(currentProductionRecipe.secondary_output_product_id);
+  const primary = Number(document.querySelector('input[name="primary_output_qty"]')?.value || 0);
+  const secondary = Number(document.querySelector('input[name="secondary_output_qty"]')?.value || 0);
+  const single = Number(document.querySelector('input[name="output_qty"]')?.value || 0);
+  document.querySelectorAll('.source-row[data-autocalc="true"]').forEach(row => {
+    const item = currentRecipeItems.find(candidate => String(candidate.product_id) === String(row.dataset.product));
+    const input = row.querySelector('input[name=source_qty]');
+    if (!item || !input) return;
+    const basis = !isSplit
+      ? single
+      : (item.output_scope === 'primary' ? primary : (item.output_scope === 'secondary' ? secondary : primary + secondary));
+    input.value = basis > 0 ? (Number(item.qty) * basis / nominal).toFixed(3) : '';
+  });
+}
 
 async function loadProductionRecipe() {
   const select = document.getElementById('prodRecipe');
@@ -276,13 +319,20 @@ async function loadProductionRecipe() {
   box.innerHTML = '';
   currentRecipeItems = [];
   if (!select.value) {
+    currentProductionRecipe = null;
+    updateProductionOutputFields(null);
     summary.textContent = 'Seleccioná una receta.';
     return;
   }
   const data = await fetch('/api/recipe/' + select.value).then(response => response.json());
+  currentProductionRecipe = data.recipe;
   currentRecipeItems = data.items || [];
-  summary.innerHTML = `<b>${escapeHtml(data.recipe.sector)} · ${escapeHtml(data.recipe.name)} v${escapeHtml(data.recipe.version)}</b><br>Resultado: ${escapeHtml(data.recipe.output_product)} · rendimiento nominal ${data.recipe.output_qty} ${escapeHtml(data.recipe.output_unit)}.`;
+  updateProductionOutputFields(data.recipe);
+  summary.innerHTML = data.recipe.secondary_output_product_id
+    ? `<b>${escapeHtml(data.recipe.sector)} · ${escapeHtml(data.recipe.name)} v${escapeHtml(data.recipe.version)}</b><br>Producción dividida: <b>${escapeHtml(data.recipe.output_product)}</b> + <b>${escapeHtml(data.recipe.secondary_output_product)}</b>. La masa común se reparte automáticamente según las cantidades producidas.`
+    : `<b>${escapeHtml(data.recipe.sector)} · ${escapeHtml(data.recipe.name)} v${escapeHtml(data.recipe.version)}</b><br>Resultado: ${escapeHtml(data.recipe.output_product)} · rendimiento nominal ${data.recipe.output_qty} ${escapeHtml(data.recipe.output_unit)}.`;
   for (const item of currentRecipeItems) await addSourceRow(item, true);
+  scaleProductionInputs();
 }
 
 async function lotOptions(productId) {
@@ -299,7 +349,8 @@ async function addSourceRow(item, prefill = false) {
   const row = document.createElement('div');
   row.className = 'source-row';
   row.dataset.product = chosen.product_id;
-  row.innerHTML = `<div><b>${escapeHtml(chosen.name)}</b><div class="lot-info">${escapeHtml(chosen.category)} · receta ${chosen.qty} ${escapeHtml(chosen.unit)}</div><input type="hidden" name="source_product_id" value="${chosen.product_id}"></div><select name="source_id" required><option value="">Seleccionar lote disponible...</option>${options}</select><input type="hidden" name="source_type" value="receipt"><input type="number" step="0.001" min="0.001" name="source_qty" value="${prefill ? chosen.qty : ''}" placeholder="Cantidad" required><button type="button" class="secondary small">Quitar</button>`;
+  row.dataset.autocalc = prefill ? 'true' : 'false';
+  row.innerHTML = `<div><b>${escapeHtml(chosen.name)}</b><div class="lot-info">${escapeHtml(chosen.category)} · receta ${chosen.qty} ${escapeHtml(chosen.unit)} · ${escapeHtml(productionScopeLabel(chosen.output_scope, currentProductionRecipe || {}))}</div><input type="hidden" name="source_product_id" value="${chosen.product_id}"></div><select name="source_id" required><option value="">Seleccionar lote disponible...</option>${options}</select><input type="hidden" name="source_type" value="receipt"><input type="number" step="0.001" min="0.001" name="source_qty" value="${prefill ? chosen.qty : ''}" placeholder="Cantidad" required><button type="button" class="secondary small">Quitar</button>`;
   const select = row.querySelector('select');
   const type = row.querySelector('input[name=source_type]');
   select.addEventListener('change', () => { type.value = select.selectedOptions[0]?.dataset.type || 'receipt'; });
@@ -320,20 +371,10 @@ function setupProduction() {
       if (selected >= 1 && selected <= currentRecipeItems.length) await addSourceRow(currentRecipeItems[selected - 1], false);
     });
   }
-  const output = document.querySelector('input[name=output_qty]');
-  if (output) {
-    output.addEventListener('change', () => {
-      if (!recipe.value || !currentRecipeItems.length) return;
-      fetch('/api/recipe/' + recipe.value).then(response => response.json()).then(data => {
-        const factor = Number(output.value || 0) / Number(data.recipe.output_qty || 1);
-        document.querySelectorAll('.source-row').forEach(row => {
-          const item = currentRecipeItems.find(candidate => String(candidate.product_id) === String(row.dataset.product));
-          const input = row.querySelector('input[name=source_qty]');
-          if (item && input) input.value = (Number(item.qty) * factor).toFixed(3);
-        });
-      });
-    });
-  }
+  document.querySelectorAll('input[name=output_qty],input[name=primary_output_qty],input[name=secondary_output_qty]').forEach(input => {
+    input.addEventListener('input', scaleProductionInputs);
+    input.addEventListener('change', scaleProductionInputs);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -12,7 +12,7 @@ async function getNode(pool, clientId, type, id) {
     return { type, id, data: rows[0], children: [] };
   }
   const { rows } = await pool.query(`
-    SELECT b.id,b.internal_lot,b.final_lot,b.qty,b.produced_at,b.status,
+    SELECT b.id,b.internal_lot,b.final_lot,b.qty,b.production_group,b.split_role,b.produced_at,b.status,
            p.id product_id,p.name product,p.category,s.name sector,r.name recipe,r.version recipe_version
     FROM batches b
     JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id

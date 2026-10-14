@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const { pool, initDb, audit, hasDatabaseConfig, databaseConfigSource } = require('./db');
 const { backward, forward } = require('./trace');
 const { baseQuantity, displayQuantity, normalizedUnit } = require('./units');
+const { allocateInput, splitOutputs } = require('./production-split');
 
 const app = express();
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
@@ -145,15 +146,15 @@ app.use(asyncRoute(async (req, res, next) => {
 
 async function seedAdmin() {
   const username = process.env.ADMIN_USER || 'admin';
-  const password = process.env.ADMIN_INITIAL_PASSWORD || 'admin123';
   const found = await pool.query('SELECT id FROM users WHERE username=$1', [username]);
-  if (found.rowCount === 0) {
-    const hash = await bcrypt.hash(password, 12);
-    await pool.query(
-      "INSERT INTO users(username,password_hash,role,client_id) VALUES($1,$2,'superadmin',NULL)",
-      [username, hash]
-    );
-  }
+  if (found.rowCount > 0) return;
+  const password = String(process.env.ADMIN_INITIAL_PASSWORD || '');
+  if (!password) throw new Error('Falta ADMIN_INITIAL_PASSWORD para crear la administración inicial.');
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query(
+    "INSERT INTO users(username,password_hash,role,client_id) VALUES($1,$2,'superadmin',NULL)",
+    [username, hash]
+  );
 }
 
 app.get('/login', (req, res) => res.render('login'));
@@ -738,17 +739,30 @@ app.post('/admin/sectors/:id/toggle', requireAdmin, requireClient, asyncRoute(as
 
 app.get('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
-  const [products, recipes] = await Promise.all([
+  const [products, recipes, recipeItems] = await Promise.all([
     pool.query(
       "SELECT p.id,p.name,p.category,p.unit,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 AND p.active=TRUE GROUP BY p.id ORDER BY p.name",
       [clientId]
     ),
     pool.query(
-      'SELECT r.*,s.name sector,p.name output_product FROM recipes r JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id WHERE r.client_id=$1 ORDER BY s.position,r.name,r.version',
+      'SELECT r.*,s.name sector,p.name output_product,p2.name secondary_output_product FROM recipes r JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id LEFT JOIN products p2 ON p2.id=r.secondary_output_product_id AND p2.client_id=r.client_id WHERE r.client_id=$1 ORDER BY s.position,r.name,r.version',
+      [clientId]
+    ),
+    pool.query(
+      'SELECT ri.id,ri.recipe_id,ri.output_scope,p.name product,p.unit FROM recipe_items ri JOIN recipes r ON r.id=ri.recipe_id JOIN products p ON p.id=ri.product_id AND p.client_id=r.client_id WHERE r.client_id=$1 ORDER BY ri.recipe_id,p.name',
       [clientId]
     )
   ]);
-  res.render('recipes', { products: products.rows, recipes: recipes.rows });
+  const itemsByRecipe = new Map();
+  for (const item of recipeItems.rows) {
+    if (!itemsByRecipe.has(String(item.recipe_id))) itemsByRecipe.set(String(item.recipe_id), []);
+    itemsByRecipe.get(String(item.recipe_id)).push(item);
+  }
+  const recipeRows = recipes.rows.map(recipe => ({
+    ...recipe,
+    items: itemsByRecipe.get(String(recipe.id)) || []
+  }));
+  res.render('recipes', { products: products.rows, recipes: recipeRows });
 }));
 
 app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, res) => {
@@ -761,13 +775,30 @@ app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, r
       [req.body.sector_id, clientId]
     );
     const output = await client.query(
-      'SELECT id FROM products WHERE id=$1 AND client_id=$2 AND active=TRUE',
+      'SELECT id,unit FROM products WHERE id=$1 AND client_id=$2 AND active=TRUE',
       [req.body.output_product_id, clientId]
     );
     if (!sector.rows[0] || !output.rows[0]) throw new Error('El sector o el producto no pertenece a la empresa seleccionada.');
 
+    const secondaryProductId = String(req.body.secondary_output_product_id || '').trim() || null;
+    let secondaryOutput = null;
+    if (secondaryProductId) {
+      secondaryOutput = (await client.query(
+        'SELECT id,unit FROM products WHERE id=$1 AND client_id=$2 AND active=TRUE',
+        [secondaryProductId, clientId]
+      )).rows[0];
+      if (!secondaryOutput) throw new Error('El segundo producto no pertenece a la empresa seleccionada.');
+      if (Number(secondaryOutput.id) === Number(output.rows[0].id)) {
+        throw new Error('Los dos productos resultantes deben ser diferentes.');
+      }
+      if (String(secondaryOutput.unit) !== String(output.rows[0].unit)) {
+        throw new Error('Los dos productos resultantes deben utilizar la misma unidad.');
+      }
+    }
+
     const productIds = [].concat(req.body.input_product_id || []).filter(Boolean);
     const quantities = [].concat(req.body.input_qty || []);
+    const scopes = [].concat(req.body.input_scope || []);
     const uniqueProductIds = [...new Set(productIds.map(Number))];
     if (uniqueProductIds.length) {
       const validProducts = await client.query(
@@ -780,12 +811,13 @@ app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, r
     }
 
     const recipeResult = await client.query(
-      'INSERT INTO recipes(client_id,name,sector_id,output_product_id,output_qty,version,notes) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+      'INSERT INTO recipes(client_id,name,sector_id,output_product_id,secondary_output_product_id,output_qty,version,notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
       [
         clientId,
         String(req.body.name || '').trim(),
         req.body.sector_id,
         req.body.output_product_id,
+        secondaryProductId,
         Number(req.body.output_qty),
         req.body.version || '1.0',
         req.body.notes || ''
@@ -794,9 +826,12 @@ app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, r
     const recipeId = recipeResult.rows[0].id;
     for (let index = 0; index < productIds.length; index += 1) {
       if (productIds[index] && Number(quantities[index]) > 0) {
+        const outputScope = secondaryProductId && ['primary', 'secondary'].includes(scopes[index])
+          ? scopes[index]
+          : 'both';
         await client.query(
-          'INSERT INTO recipe_items(recipe_id,product_id,qty) VALUES($1,$2,$3)',
-          [recipeId, productIds[index], Number(quantities[index])]
+          'INSERT INTO recipe_items(recipe_id,product_id,qty,output_scope) VALUES($1,$2,$3,$4)',
+          [recipeId, productIds[index], Number(quantities[index]), outputScope]
         );
       }
     }
@@ -809,6 +844,62 @@ app.post('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, r
   } catch (error) {
     await client.query('ROLLBACK');
     flash(req, 'error', error.message || 'No se pudo crear la receta.');
+  } finally {
+    client.release();
+  }
+  res.redirect('/admin/recipes');
+}));
+
+app.post('/admin/recipes/:id/split', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const recipe = (await client.query(
+      'SELECT r.id,r.output_product_id,p.unit FROM recipes r JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id WHERE r.id=$1 AND r.client_id=$2 FOR UPDATE',
+      [req.params.id, clientId]
+    )).rows[0];
+    if (!recipe) throw new Error('La receta no pertenece a la empresa seleccionada.');
+
+    const secondaryProductId = String(req.body.secondary_output_product_id || '').trim() || null;
+    if (secondaryProductId) {
+      const secondary = (await client.query(
+        'SELECT id,unit FROM products WHERE id=$1 AND client_id=$2 AND active=TRUE',
+        [secondaryProductId, clientId]
+      )).rows[0];
+      if (!secondary) throw new Error('El segundo producto no pertenece a la empresa seleccionada.');
+      if (Number(secondary.id) === Number(recipe.output_product_id)) {
+        throw new Error('Los dos productos resultantes deben ser diferentes.');
+      }
+      if (String(secondary.unit) !== String(recipe.unit)) {
+        throw new Error('Los dos productos resultantes deben utilizar la misma unidad.');
+      }
+    }
+
+    await client.query(
+      'UPDATE recipes SET secondary_output_product_id=$1 WHERE id=$2 AND client_id=$3',
+      [secondaryProductId, recipe.id, clientId]
+    );
+    const itemIds = [].concat(req.body.item_id || []);
+    const scopes = [].concat(req.body.item_scope || []);
+    for (let index = 0; index < itemIds.length; index += 1) {
+      const scope = secondaryProductId && ['primary', 'secondary'].includes(scopes[index]) ? scopes[index] : 'both';
+      await client.query(
+        'UPDATE recipe_items SET output_scope=$1 WHERE id=$2 AND recipe_id=$3',
+        [scope, itemIds[index], recipe.id]
+      );
+    }
+    if (!secondaryProductId) {
+      await client.query('UPDATE recipe_items SET output_scope=$1 WHERE recipe_id=$2', ['both', recipe.id]);
+    }
+    await client.query('COMMIT');
+    await audit(req.session.user.id, clientId, 'UPDATE', 'recipe_split', recipe.id, {
+      secondary_output_product_id: secondaryProductId
+    });
+    flash(req, 'ok', secondaryProductId ? 'Producción dividida configurada.' : 'Producción dividida desactivada.');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    flash(req, 'error', error.message || 'No se pudo configurar la producción dividida.');
   } finally {
     client.release();
   }
@@ -956,7 +1047,7 @@ async function availableSource(client, clientId, type, id) {
 app.get('/production', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const recipes = (await pool.query(
-    'SELECT r.id,r.name,r.version,r.sector_id,r.output_product_id,p.name output_product,s.name sector FROM recipes r JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id WHERE r.client_id=$1 AND r.active=TRUE AND s.active=TRUE ORDER BY s.position,r.name',
+    'SELECT r.id,r.name,r.version,r.sector_id,r.output_product_id,r.secondary_output_product_id,p.name output_product,p2.name secondary_output_product,s.name sector FROM recipes r JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id LEFT JOIN products p2 ON p2.id=r.secondary_output_product_id AND p2.client_id=r.client_id JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id WHERE r.client_id=$1 AND r.active=TRUE AND s.active=TRUE ORDER BY s.position,r.name',
     [clientId]
   )).rows;
   res.render('production', { recipes });
@@ -965,12 +1056,12 @@ app.get('/production', requireAuth, requireClient, asyncRoute(async (req, res) =
 app.get('/api/recipe/:id', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const recipe = (await pool.query(
-    'SELECT r.*,p.name output_product,p.unit output_unit,s.name sector FROM recipes r JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id WHERE r.id=$1 AND r.client_id=$2',
+    'SELECT r.*,p.name output_product,p.unit output_unit,p2.name secondary_output_product,p2.unit secondary_output_unit,s.name sector FROM recipes r JOIN products p ON p.id=r.output_product_id AND p.client_id=r.client_id LEFT JOIN products p2 ON p2.id=r.secondary_output_product_id AND p2.client_id=r.client_id JOIN sectors s ON s.id=r.sector_id AND s.client_id=r.client_id WHERE r.id=$1 AND r.client_id=$2',
     [req.params.id, clientId]
   )).rows[0];
   if (!recipe) return res.status(404).json({ error: 'Receta no encontrada.' });
   const items = (await pool.query(
-    'SELECT ri.product_id,ri.qty,p.name,p.unit,p.category FROM recipe_items ri JOIN recipes r ON r.id=ri.recipe_id JOIN products p ON p.id=ri.product_id AND p.client_id=r.client_id WHERE ri.recipe_id=$1 AND r.client_id=$2 ORDER BY p.name',
+    'SELECT ri.product_id,ri.qty,ri.output_scope,p.name,p.unit,p.category FROM recipe_items ri JOIN recipes r ON r.id=ri.recipe_id JOIN products p ON p.id=ri.product_id AND p.client_id=r.client_id WHERE ri.recipe_id=$1 AND r.client_id=$2 ORDER BY p.name',
     [req.params.id, clientId]
   )).rows;
   res.json({ recipe, items });
@@ -996,70 +1087,118 @@ app.post('/production', requireAuth, requireClient, asyncRoute(async (req, res) 
     )).rows[0];
     if (!recipe) throw new Error('Receta inválida para la empresa seleccionada.');
 
-    const allowedProducts = new Set((await client.query(
-      'SELECT ri.product_id FROM recipe_items ri JOIN products p ON p.id=ri.product_id WHERE ri.recipe_id=$1 AND p.client_id=$2',
+    const recipeItems = (await client.query(
+      'SELECT ri.product_id,ri.qty,ri.output_scope FROM recipe_items ri JOIN products p ON p.id=ri.product_id WHERE ri.recipe_id=$1 AND p.client_id=$2',
       [recipe.id, clientId]
-    )).rows.map(row => Number(row.product_id)));
+    )).rows;
+    const allowedProducts = new Map(recipeItems.map(row => [Number(row.product_id), row]));
+    const outputs = splitOutputs(recipe, req.body);
     const types = [].concat(req.body.source_type || []);
     const ids = [].concat(req.body.source_id || []);
     const productIds = [].concat(req.body.source_product_id || []);
     const quantities = [].concat(req.body.source_qty || []);
     if (!ids.length) throw new Error('Seleccioná al menos un lote utilizado.');
 
+    const sourceLines = [];
+    const sourceTotals = new Map();
+    const sourceCache = new Map();
     for (let index = 0; index < ids.length; index += 1) {
       const quantity = Number(quantities[index]);
       if (!ids[index] || quantity <= 0) continue;
       if (!['receipt', 'batch'].includes(types[index])) {
         throw new Error('El tipo de lote seleccionado no es válido.');
       }
-      if (!allowedProducts.has(Number(productIds[index]))) {
+      const productId = Number(productIds[index]);
+      if (!allowedProducts.has(productId)) {
         throw new Error('Uno de los componentes no pertenece a la receta seleccionada.');
       }
-      const source = await availableSource(client, clientId, types[index], ids[index]);
-      if (!source) throw new Error('Uno de los lotes seleccionados no pertenece a esta empresa o ya no existe.');
-      const available = Number(source.available || 0);
-      if (Number(source.product_id) !== Number(productIds[index])) {
-        throw new Error('El producto del lote no coincide con el componente de la receta.');
+      const sourceKey = `${types[index]}:${ids[index]}`;
+      let source = sourceCache.get(sourceKey);
+      if (!source) {
+        source = await availableSource(client, clientId, types[index], ids[index]);
+        sourceCache.set(sourceKey, source);
       }
-      if (quantity > available + 1e-9) {
-        throw new Error('Stock insuficiente para uno de los lotes. Disponible ' + available);
+      if (!source) throw new Error('Uno de los lotes seleccionados no pertenece a esta empresa o ya no existe.');
+      if (Number(source.product_id) !== productId) {
+        throw new Error('El producto del lote no coincide con el componente de la receta.');
       }
       if (types[index] === 'batch' && source.status !== 'LIBERADO') {
         throw new Error('Se intentó usar un lote no liberado.');
       }
+      sourceTotals.set(sourceKey, (sourceTotals.get(sourceKey) || 0) + quantity);
+      sourceLines.push({
+        type: types[index],
+        id: ids[index],
+        productId,
+        quantity,
+        scope: allowedProducts.get(productId).output_scope || 'both',
+        sourceKey
+      });
     }
 
-    const internalLot = 'INT-' + clientId + '-' + Date.now().toString(36).toUpperCase();
-    const finalLot = String(req.body.final_lot || '').trim() || ('LF-' + clientId + '-' + Date.now().toString(36).toUpperCase());
-    const batchResult = await client.query(
-      "INSERT INTO batches(client_id,recipe_id,sector_id,product_id,internal_lot,final_lot,qty,produced_at,status,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'LIBERADO',$9,$10) RETURNING id",
-      [
-        clientId,
-        recipe.id,
-        recipe.sector_id,
-        recipe.output_product_id,
-        internalLot,
-        finalLot,
-        Number(req.body.output_qty),
-        req.body.produced_at,
-        req.body.notes || '',
-        req.session.user.id
-      ]
-    );
-    for (let index = 0; index < ids.length; index += 1) {
-      if (ids[index] && Number(quantities[index]) > 0) {
+    if (!sourceLines.length) throw new Error('Seleccioná al menos un lote con una cantidad utilizada.');
+    for (const item of recipeItems) {
+      if (!sourceLines.some(line => line.productId === Number(item.product_id))) {
+        throw new Error('Falta seleccionar un lote para uno de los ingredientes de la receta.');
+      }
+    }
+    for (const [sourceKey, total] of sourceTotals) {
+      const available = Number(sourceCache.get(sourceKey).available || 0);
+      if (total > available + 1e-9) {
+        throw new Error('Stock insuficiente para uno de los lotes. Disponible ' + available);
+      }
+    }
+
+    const token = Date.now().toString(36).toUpperCase();
+    const productionGroup = outputs.length > 1 ? `GRP-${clientId}-${token}` : null;
+    const baseFinalLot = String(req.body.final_lot || '').trim() || (`LF-${clientId}-${token}`);
+    const createdBatches = [];
+    for (let index = 0; index < outputs.length; index += 1) {
+      const output = outputs[index];
+      const internalLot = `INT-${clientId}-${token}${output.lotSuffix}`;
+      const finalLot = `${baseFinalLot}${output.lotSuffix}`;
+      const result = await client.query(
+        "INSERT INTO batches(client_id,recipe_id,sector_id,product_id,internal_lot,final_lot,qty,production_group,split_role,produced_at,status,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'LIBERADO',$11,$12) RETURNING id",
+        [
+          clientId,
+          recipe.id,
+          recipe.sector_id,
+          output.productId,
+          internalLot,
+          finalLot,
+          output.qty,
+          productionGroup,
+          output.role,
+          req.body.produced_at,
+          req.body.notes || '',
+          req.session.user.id
+        ]
+      );
+      createdBatches.push({ ...output, id: result.rows[0].id, internalLot, finalLot });
+    }
+
+    for (const line of sourceLines) {
+      for (const allocation of allocateInput(line.quantity, line.scope, outputs)) {
+        const allocatedQty = Number(allocation.qty.toFixed(3));
+        if (allocatedQty <= 0) continue;
         await client.query(
           'INSERT INTO batch_inputs(batch_id,source_type,source_id,product_id,qty) VALUES($1,$2,$3,$4,$5)',
-          [batchResult.rows[0].id, types[index], ids[index], productIds[index], Number(quantities[index])]
+          [createdBatches[allocation.outputIndex].id, line.type, line.id, line.productId, allocatedQty]
         );
       }
     }
     await client.query('COMMIT');
-    await audit(req.session.user.id, clientId, 'CREATE', 'batch', batchResult.rows[0].id, {
-      internal_lot: internalLot,
-      final_lot: finalLot
-    });
-    flash(req, 'ok', 'Elaboración registrada. Lote interno ' + internalLot + ' · lote final ' + finalLot);
+    for (const batch of createdBatches) {
+      await audit(req.session.user.id, clientId, 'CREATE', 'batch', batch.id, {
+        internal_lot: batch.internalLot,
+        final_lot: batch.finalLot,
+        production_group: productionGroup,
+        split_role: batch.role
+      });
+    }
+    flash(req, 'ok', outputs.length > 1
+      ? 'Elaboración dividida registrada. Se generaron los lotes ' + createdBatches.map(batch => batch.finalLot).join(' y ') + '.'
+      : 'Elaboración registrada. Lote interno ' + createdBatches[0].internalLot + ' · lote final ' + createdBatches[0].finalLot);
   } catch (error) {
     await client.query('ROLLBACK');
     flash(req, 'error', error.code === '23505' ? 'El lote final ya existe dentro de esta empresa.' : (error.message || 'No se pudo registrar la elaboración.'));

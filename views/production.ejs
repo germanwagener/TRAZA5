@@ -21,13 +21,17 @@
           <select id="prodRecipe" name="recipe_id" required>
             <option value="">Seleccionar receta...</option>
             <% recipes.forEach(r=>{ %>
-              <option value="<%= r.id %>"><%= r.sector %> · <%= r.name %> v<%= r.version %> → <%= r.output_product %></option>
+              <option value="<%= r.id %>"><%= r.sector %> · <%= r.name %> v<%= r.version %> → <%= r.output_product %><%= r.secondary_output_product ? ' + ' + r.secondary_output_product : '' %></option>
             <% }) %>
           </select>
         </label>
         <label>Fecha y hora de elaboración<input type="datetime-local" name="produced_at" required></label>
-        <label>Cantidad producida<input type="number" step="0.001" min="0.001" name="output_qty" required></label>
-        <label>Lote final<input name="final_lot" placeholder="Opcional; se genera automáticamente"></label>
+        <label id="singleOutputField">Cantidad producida<input type="number" step="0.001" min="0.001" name="output_qty" required></label>
+        <div id="splitOutputFields" class="wide production-output-grid" hidden>
+          <label>Cantidad de <span id="primaryOutputName">producto 1</span><input type="number" step="0.001" min="0.001" name="primary_output_qty"></label>
+          <label>Cantidad de <span id="secondaryOutputName">producto 2</span><input type="number" step="0.001" min="0.001" name="secondary_output_qty"></label>
+        </div>
+        <label>Lote final<input name="final_lot" placeholder="Opcional; se genera automáticamente"><small>En una producción dividida se crearán dos lotes relacionados terminados en -1 y -2.</small></label>
         <label class="wide">Observaciones<textarea name="notes"></textarea></label>
       </div>
       <div id="recipeSummary" class="notice">Seleccioná una receta.</div>

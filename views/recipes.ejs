@@ -25,7 +25,17 @@
             <% products.forEach(p=>{ %><option value="<%= p.id %>"><%= p.name %> · <%= p.category %><%= p.supplier_names?' · '+p.supplier_names:'' %></option><% }) %>
           </select>
         </label>
-        <label>Rendimiento nominal<input type="number" step="0.001" min="0.001" name="output_qty" value="1" required></label>
+        <label class="select-search-label">Buscar segundo producto
+          <input data-select-filter="recipeSecondaryOutput" placeholder="Solo para producción dividida..." autocomplete="off">
+        </label>
+        <label>Segundo producto resultante
+          <select id="recipeSecondaryOutput" name="secondary_output_product_id">
+            <option value="">Sin segundo producto</option>
+            <% products.forEach(p=>{ %><option value="<%= p.id %>"><%= p.name %> · <%= p.category %></option><% }) %>
+          </select>
+          <small>Para Pizza Betel: producto 1 = prepizza con salsa; producto 2 = prepizza con cebolla.</small>
+        </label>
+        <label>Rendimiento nominal de referencia<input type="number" step="0.001" min="0.001" name="output_qty" value="1" required><small>Sirve para calcular automáticamente los ingredientes según las unidades producidas.</small></label>
         <label>Versión<input name="version" value="1.0" required></label>
         <label class="wide">Notas<input name="notes"></label>
       </div>
@@ -36,6 +46,11 @@
             <% products.forEach(p=>{ %><option value="<%= p.id %>"><%= p.name %> · <%= p.unit %><%= p.supplier_names?' · '+p.supplier_names:'' %></option><% }) %>
           </select>
           <input type="number" step="0.001" min="0" name="input_qty" placeholder="Cantidad">
+          <select name="input_scope" aria-label="Producto al que corresponde el ingrediente">
+            <option value="both">Ambos productos</option>
+            <option value="primary">Solo producto 1</option>
+            <option value="secondary">Solo producto 2</option>
+          </select>
         </div>
       </div>
       <button type="button" class="secondary" id="addRecipeItem">+ Agregar ingrediente</button>
@@ -60,10 +75,34 @@
               <td><%= r.sector %></td>
               <td><b><%= r.name %></b><% if(r.notes){ %><small class="block"><%= r.notes %></small><% } %></td>
               <td><%= r.version %></td>
-              <td><%= r.output_product %></td>
+              <td><%= r.output_product %><% if(r.secondary_output_product){ %><small class="block">+ <%= r.secondary_output_product %> · producción dividida</small><% } %></td>
               <td><%= r.output_qty %></td>
               <td><span class="pill <%= r.active?'liberado':'rechazado' %>"><%= r.active?'ACTIVA':'INACTIVA' %></span></td>
               <td>
+                <details class="recipe-split-config no-print">
+                  <summary>Configurar división</summary>
+                  <form method="post" action="/admin/recipes/<%= r.id %>/split">
+                    <label>Segundo producto
+                      <select name="secondary_output_product_id">
+                        <option value="">Sin segundo producto</option>
+                        <% products.filter(p=>Number(p.id)!==Number(r.output_product_id)).forEach(p=>{ %>
+                          <option value="<%= p.id %>" <%= Number(p.id)===Number(r.secondary_output_product_id)?'selected':'' %>><%= p.name %></option>
+                        <% }) %>
+                      </select>
+                    </label>
+                    <% (r.items||[]).forEach(item=>{ %>
+                      <label><%= item.product %> · <%= item.unit %>
+                        <input type="hidden" name="item_id" value="<%= item.id %>">
+                        <select name="item_scope">
+                          <option value="both" <%= item.output_scope==='both'?'selected':'' %>>Ambos productos</option>
+                          <option value="primary" <%= item.output_scope==='primary'?'selected':'' %>>Solo producto 1 · <%= r.output_product %></option>
+                          <option value="secondary" <%= item.output_scope==='secondary'?'selected':'' %>>Solo producto 2</option>
+                        </select>
+                      </label>
+                    <% }) %>
+                    <button class="small">Guardar división</button>
+                  </form>
+                </details>
                 <form method="post" action="/admin/recipes/<%= r.id %>/toggle">
                   <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
                 </form>

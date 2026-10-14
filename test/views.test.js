@@ -103,3 +103,30 @@ for (const [file, data] of Object.entries(cases)) {
     assert.match(html, /<!doctype html>/i);
   });
 }
+
+test('renderiza una receta y una elaboración divididas', async () => {
+  const products = [
+    { ...product, id: 10, name: 'Prepizza con salsa', category: 'Producto terminado', unit: 'unidad' },
+    { ...product, id: 11, name: 'Prepizza con cebolla', category: 'Producto terminado', unit: 'unidad' }
+  ];
+  const recipe = {
+    id: 5,
+    name: 'Masa de prepizza',
+    version: '1',
+    sector: 'Producción',
+    output_product_id: 10,
+    output_product: 'Prepizza con salsa',
+    secondary_output_product_id: 11,
+    secondary_output_product: 'Prepizza con cebolla',
+    output_qty: 100,
+    notes: '',
+    active: true,
+    items: [{ id: 7, product: 'Harina', unit: 'kg', output_scope: 'both' }]
+  };
+  const recipesHtml = await ejs.renderFile(path.join(views, 'recipes.ejs'), { ...common, products, recipes: [recipe] });
+  const productionHtml = await ejs.renderFile(path.join(views, 'production.ejs'), { ...common, recipes: [recipe] });
+  assert.match(recipesHtml, /producción dividida/i);
+  assert.match(productionHtml, /Prepizza con salsa \+ Prepizza con cebolla/);
+  assert.match(productionHtml, /primary_output_qty/);
+  assert.match(productionHtml, /secondary_output_qty/);
+});

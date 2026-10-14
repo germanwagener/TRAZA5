@@ -80,7 +80,7 @@
             <% if(n.type==='receipt'){ %>
               Proveedor: <b><%= n.data.supplier %></b> · Recibido: <b><%= n.data.presentation_qty %> <%= n.data.presentation_unit %></b> de <%= n.data.content_per_presentation %> <%= n.data.content_unit %> cada uno · Stock: <b><%= n.data.qty %> <%= n.data.unit %></b> · Ingreso: <%= n.data.received_at %> · Vencimiento: <%= n.data.expires_at||'—' %> · Lote proveedor: <%= n.data.supplier_lot||'—' %>
             <% } else { %>
-              Sector: <b><%= n.data.sector %></b> · Receta: <%= n.data.recipe %> v<%= n.data.recipe_version %> · Elaborado: <%= new Date(n.data.produced_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) %> · Estado: <%= n.data.status %>
+              Sector: <b><%= n.data.sector %></b> · Receta: <%= n.data.recipe %> v<%= n.data.recipe_version %><% if(n.data.production_group){ %> · Producción dividida: <code><%= n.data.production_group %></code><% } %> · Elaborado: <%= new Date(n.data.produced_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) %> · Estado: <%= n.data.status %>
             <% } %>
             <% if(n.consumed_qty){ %> · Cantidad utilizada: <b><%= n.consumed_qty %></b><% } %>
           </div>

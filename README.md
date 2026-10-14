@@ -23,6 +23,8 @@ Versión web de TRAZA5 construida con **Node.js + PostgreSQL**. No utiliza Pytho
 - Recetas versionadas por sector.
 - Recetas que pueden utilizar subproductos/productos intermedios fabricados en otros sectores.
 - Elaboraciones con lote interno y lote final automáticos.
+- Elaboración dividida en dos productos: una misma masa o base se reparte automáticamente según las unidades obtenidas y genera dos lotes vinculados.
+- Los ingredientes comunes se distribuyen proporcionalmente; los ingredientes exclusivos, como salsa o cebolla, quedan asociados únicamente al producto correspondiente.
 - Consumo de uno o varios lotes por ingrediente.
 - Saldo disponible por lote: cantidad original - consumos.
 - Control para impedir consumir más cantidad que la disponible.
@@ -107,9 +109,8 @@ Luego abrir:
 http://localhost:3000
 ```
 
-Usuario de prueba local: `admin` / `admin123`.
-
-**Cambiar esa contraseña al primer ingreso.**
+El usuario y la contraseña iniciales se toman de `ADMIN_USER` y
+`ADMIN_INITIAL_PASSWORD`. Utilizar una clave segura y cambiarla al primer ingreso.
 
 ## Flujo recomendado de primera configuración
 
@@ -136,6 +137,10 @@ La unidad de stock es la que utilizan las recetas y la elaboración. La presenta
 - Stock generado automáticamente: `30 L`.
 
 Si un producto tiene un solo proveedor, TRAZA5 selecciona el proveedor y su presentación automáticamente. Si tiene varios, muestra únicamente los proveedores habilitados y usa la presentación configurada para el elegido.
+
+## Producción dividida
+
+Al crear una receta se puede elegir un segundo producto resultante. Cada ingrediente se marca como `Ambos productos`, `Solo producto 1` o `Solo producto 2`. Al elaborar, el operador carga las dos cantidades producidas; TRAZA5 reparte los ingredientes comunes en proporción a esas cantidades, conserva los ingredientes exclusivos y genera dos lotes vinculados para mantener la trazabilidad completa.
 
 ## Recomendaciones para uso industrial real
 
