@@ -162,7 +162,12 @@ app.get('/login', (req, res) => res.render('login'));
 app.post('/login', asyncRoute(async (req, res) => {
   const username = String(req.body.username || '').trim();
   const result = await pool.query(
-    'SELECT u.*,c.active client_active FROM users u LEFT JOIN clients c ON c.id=u.client_id WHERE u.username=$1 AND u.active=TRUE',
+    `SELECT u.*,c.active client_active
+     FROM users u
+     LEFT JOIN clients c ON c.id=u.client_id
+     WHERE LOWER(u.username)=LOWER($1) AND u.active=TRUE
+     ORDER BY (u.username=$1) DESC,u.id
+     LIMIT 1`,
     [username]
   );
   const user = result.rows[0];
