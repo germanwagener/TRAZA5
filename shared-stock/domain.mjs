@@ -1,0 +1,120 @@
+import {deliverySettings,createDelivery} from './remitos.mjs';
+import {randomUUID} from 'node:crypto';
+import {baseQuantity,unitDefinition} from './units.mjs';
+import {allocateProductionInputs,outputScope,productionOutputs,splitRequirements} from './production-split.mjs';
+export const id=()=>randomUUID();
+const fail=m=>{throw new Error(m)};
+export const positive=(x,label='Cantidad')=>{const n=Number(x);if(!Number.isFinite(n)||n<=0)fail(label+' debe ser mayor a cero.');return n};
+const amount=x=>{const n=Number(x);if(!Number.isFinite(n)||n<0)fail('Importe inválido.');return n};
+const txt=(x,label='Nombre')=>{if(typeof x!=='string'||!x.trim()||x.length>2000)fail(label+' obligatorio o demasiado largo.');return x.trim()};
+const date=x=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(x||'')||new Date(x).toISOString().slice(0,10)!==x)fail('Fecha inválida.');return x};
+export function recipeExpiry(day,days){date(day);if(!Number.isInteger(days)||days<0||days>730)fail('La vida útil debe ser de 0 a 730 días.');const result=new Date(day+'T00:00:00Z');result.setUTCDate(result.getUTCDate()+days);return result.toISOString().slice(0,10)}
+export const sameId=(a,b)=>String(a)===String(b);
+export const get=(arr,key)=>arr.find(x=>sameId(x.id,key))||fail('Registro no encontrado.');
+export const empty=name=>({company:name,sectors:[],suppliers:[],customers:[],items:[],recipes:[],lots:[],purchases:[],productions:[],trials:[],sales:[],expenses:[],transfers:[],adjustments:[],counter:0,lastStockDate:'',averages:{}});
+const active=(arr,key)=>{const x=get(arr,key);if(x.archived)fail('El registro está archivado.');return x};
+const stockDate=(s,d)=>{date(d);if(!s.lastStockDate||d>s.lastStockDate)s.lastStockDate=d};
+const lotCode=(s,p,d)=>`${p}-${d.replaceAll('-','')}-${String(++s.counter).padStart(6,'0')}`;
+const lotItem=(s,l)=>get(s.items,l.itemId);
+const scaled=(value,factor)=>Math.round((Number(value)*factor+Number.EPSILON)*1e9)/1e9;
+function convertItemUnit(s,itemId,oldUnit,newUnit,requestedFactor){
+ const oldDefinition=unitDefinition(oldUnit),newDefinition=unitDefinition(newUnit),automatic=oldDefinition.dimension===newDefinition.dimension?oldDefinition.factor/newDefinition.factor:null,factor=requestedFactor===''||requestedFactor===undefined||requestedFactor===null?automatic:Number(requestedFactor);
+ if(!Number.isFinite(factor)||factor<=0)fail('Indicá cuántas unidades nuevas equivalen a 1 '+oldUnit+'.');
+ const multiply=(row,keys)=>{for(const key of keys)if(row[key]!==undefined&&row[key]!==null)row[key]=scaled(row[key],factor)};
+ const divide=(row,keys)=>{for(const key of keys)if(row[key]!==undefined&&row[key]!==null)row[key]=scaled(row[key],1/factor)};
+ const scaleInputs=row=>{for(const input of row.inputs||[])if(input.itemId===itemId){multiply(input,['qty']);divide(input,['unitCost'])}};
+ const scaleRecipe=recipe=>{if(!recipe)return;if(recipe.itemId===itemId||recipe.secondaryItemId===itemId)multiply(recipe,['yield']);for(const component of recipe.components||[])if(component.itemId===itemId)multiply(component,['qty'])};
+ for(const lot of s.lots.filter(row=>row.itemId===itemId)){multiply(lot,['qty','remaining']);divide(lot,['unitCost'])}
+ for(const purchase of s.purchases.filter(row=>row.itemId===itemId)){multiply(purchase,['qty']);divide(purchase,['unitCost'])}
+ for(const production of [...s.productions,...(s.trials||[])]){if(production.itemId===itemId){multiply(production,['qty','expectedQty']);divide(production,['unitCost'])}scaleInputs(production);scaleRecipe(production.recipe)}
+ for(const sale of s.sales){if(sale.itemId===itemId){multiply(sale,['qty']);divide(sale,['unitCost','unitPrice','baseUnitPrice'])}scaleInputs(sale)}
+ for(const recipe of s.recipes)scaleRecipe(recipe);
+ for(const transfer of s.transfers){const lot=s.lots.find(row=>row.id===transfer.lotId);if(lot?.itemId===itemId)multiply(transfer,['qty'])}
+ for(const adjustment of s.adjustments){const lot=s.lots.find(row=>row.id===adjustment.lotId);if(adjustment.itemId===itemId||lot?.itemId===itemId){multiply(adjustment,['qty','remaining','previousQty','actualQty','delta']);divide(adjustment,['unitCost'])}}
+ if(s.averages?.[itemId]!==undefined)s.averages[itemId]=scaled(s.averages[itemId],1/factor);
+ return factor;
+}
+export function avgCost(s,itemId){const lots=s.lots.filter(l=>l.itemId===itemId&&l.remaining>0),q=lots.reduce((n,l)=>n+l.remaining,0);return q?(s.averages?.[itemId]??lots.reduce((n,l)=>n+l.remaining*l.unitCost,0)/q):0}
+export function recipeCost(s,itemId,seen=[]){if(seen.includes(itemId))fail('Las recetas no pueden formar un ciclo.');const r=s.recipes.find(x=>x.itemId===itemId);if(!r)return avgCost(s,itemId);return r.components.reduce((sum,c)=>sum+c.qty*(s.recipes.some(x=>x.itemId===c.itemId)?recipeCost(s,c.itemId,[...seen,itemId]):avgCost(s,c.itemId)),0)/r.yield}
+export function adjustStock(s,p){const l=get(s.lots,p.lotId),actual=amount(p.actualQty),d=date(p.date),reason=txt(p.reason,'Motivo del ajuste');stockDate(s,d);const previousQty=l.remaining;l.remaining=actual;const result={id:id(),date:d,lotId:l.id,itemId:l.itemId,previousQty,actualQty:actual,delta:actual-previousQty,unitCost:l.unitCost,reason,stockCorrection:true};s.adjustments.push(result);return result}
+function consume(s,allocations,d){if(!Array.isArray(allocations)||!allocations.length)fail('Seleccioná los lotes consumidos.');const keys=new Set(),costs={};for(const a of allocations){if(keys.has(a.lotId))fail('Un lote está repetido.');keys.add(a.lotId);const l=get(s.lots,a.lotId);positive(a.qty);if(l.status!=='LIBERADO')fail('Lote no liberado: '+l.code);if(l.expiry&&l.expiry<d)fail('Lote vencido: '+l.code);if(l.date>d)fail('El lote es posterior al movimiento.');if(Number(a.qty)>l.remaining+1e-8)fail('Stock insuficiente en '+l.code);costs[l.itemId]??=avgCost(s,l.itemId)}return allocations.map(a=>{const l=get(s.lots,a.lotId),q=Number(a.qty);l.remaining=Math.max(0,l.remaining-q);return{lotId:l.id,itemId:l.itemId,qty:q,unitCost:costs[l.itemId],sectorId:l.sectorId}})}
+function newLot(s,{itemId,qty,unitCost,d,expiry,sectorId,kind,sourceId}){if(expiry){date(expiry);if(expiry<d)fail('Vencimiento anterior al ingreso o elaboración.')}const previousQty=s.lots.filter(l=>l.itemId===itemId).reduce((n,l)=>n+l.remaining,0),previousCost=avgCost(s,itemId);s.averages??={};s.averages[itemId]=(previousQty*previousCost+qty*unitCost)/(previousQty+qty);const l={id:id(),code:lotCode(s,kind,d),itemId,qty,remaining:qty,unitCost,date:d,expiry:expiry||'',sectorId:sectorId||'',status:'LIBERADO',sourceId};s.lots.push(l);return l}
+export function operate(s,op,p){let result={};
+ if(op==='deliverySettings'){s.deliverySettings=deliverySettings(p,s.company);return s.deliverySettings;}
+ if(op==='issueDelivery'){const sale=get(s.sales,p.saleId);sale.delivery??=createDelivery(s,sale);return sale;}
+ if(op==='productPrices'){const product=active(s.items,p.itemId);if(product.kind!=='product')fail('Las listas de precios corresponden solo a productos terminados.');const retail=amount(p.salePrice),wholesale=amount(p.wholesalePrice);product.salePrice=retail;product.wholesalePrice=wholesale;return {id:product.id,salePrice:retail,wholesalePrice:wholesale};}
+ if(op==='documents'){if(!Array.isArray(p.attachments)||p.attachments.length>3)fail('Documentos inválidos.');return p.attachments.map(doc=>operate(s,'document',{...doc,collection:p.collection,recordId:p.recordId}));}
+ if(op==='document'){
+  const collections=['items','suppliers'];if(!collections.includes(p.collection))fail('Destino de documento inválido.');
+  const row=get(s[p.collection],p.recordId);row.documents??=[];
+  if(p.removeId){row.documents=row.documents.filter(d=>d.id!==p.removeId);return {recordId:row.id,removed:p.removeId};}
+  const label=txt(p.label,'Tipo de documento'),filename=txt(p.name,'Archivo');
+  if(!filename.toLowerCase().endsWith('.pdf')||typeof p.data!=='string'||!/^data:application\/pdf;base64,[A-Za-z0-9+/]+={0,2}$/.test(p.data))fail('Adjuntá un archivo PDF válido.');
+  const bytes=Buffer.from(p.data.split(',')[1],'base64');if(bytes.length>5*1024*1024||bytes.subarray(0,5).toString()!=='%PDF-')fail('PDF inválido o mayor a 5 MB.');
+  if(row.documents.length>=20)fail('Se admiten hasta 20 documentos por registro.');
+  const doc={id:id(),label,name:filename,data:p.data,createdAt:new Date().toISOString()};row.documents.push(doc);return {id:doc.id,recordId:row.id,name:doc.name,label};
+ }
+ if(op==='bulkCustomers'){
+  if(!Array.isArray(p.customers)||!p.customers.length||p.customers.length>5000)fail('El listado de clientes es inválido o supera el máximo permitido.');
+  let created=0,updated=0;const codes=new Set();
+  for(const raw of p.customers){
+   const fields={name:txt(String(raw?.name||''),'Nombre'),code:String(raw?.code||'').trim().slice(0,50)};
+   if(fields.code&&codes.has(fields.code))fail('El archivo repite el código de cliente '+fields.code+'.');codes.add(fields.code);
+   for(const k of ['taxId','contact','phone','email','address','notes'])fields[k]=String(raw?.[k]||'').trim().slice(0,2000);
+   let row=fields.code?s.customers.find(x=>x.code===fields.code):null;
+   if(!row){row={id:id(),archived:false};s.customers.push(row);created++}else updated++;
+   Object.assign(row,fields);row.archived=false;
+  }
+  result={created,updated,total:s.customers.filter(x=>!x.archived).length};
+ }else if(op==='master'){
+  const allowed=['suppliers','customers','sectors','items'];if(!allowed.includes(p.collection))fail('Catálogo inválido.');let row=p.id?get(s[p.collection],p.id):{id:id(),archived:false};
+  if(p.archive!==undefined){row.archived=!!p.archive;return row}
+  const fields={name:txt(p.name)};
+  if(p.collection==='customers'){const code=p.code??row.code??'';if(typeof code!=='string'||code.length>50)fail('El código del cliente admite hasta 50 caracteres.');fields.code=code.trim();}
+  if(['suppliers','customers'].includes(p.collection))for(const k of ['taxId','contact','phone','email','address','notes'])fields[k]=String(p[k]||'').slice(0,2000);
+  if(p.collection==='items'){
+	   if(!['raw','subproduct','product','packaging'].includes(p.kind))fail('Tipo inválido.');if(!['kg','g','l','ml','u','m','feta'].includes(p.unit))fail('Unidad inválida.');
+	   const hasMovements=p.id&&s.lots.some(l=>l.itemId===p.id);if(p.id&&p.kind!==row.kind&&s.recipes.some(r=>(r.itemId===p.id||r.secondaryItemId===p.id)&&!['product','subproduct'].includes(p.kind)))fail('Un artículo que es salida de una receta debe continuar como producto o subproducto.');
+	   if(hasMovements&&p.unit!==row.unit){if(s.recipes.some(r=>r.secondaryItemId&&(r.itemId===p.id||r.secondaryItemId===p.id)))fail('Para cambiar la unidad de una elaboración dividida primero separá sus dos productos.');convertItemUnit(s,p.id,row.unit,p.unit,p.unitConversionFactor)}
+	   const presentationName=String(p.presentationName??row.presentationName??'').trim().slice(0,80),presentationContent=presentationName?positive(p.presentationContent??row.presentationContent??1,'Contenido por presentación'):1,presentationContentUnit=presentationName?String(p.presentationContentUnit??row.presentationContentUnit??p.unit).trim():p.unit;if(presentationName&&p.unit!=='u')baseQuantity(1,presentationContent,presentationContentUnit,p.unit);
+	   Object.assign(fields,{kind:p.kind,unit:p.unit,brand:String(p.brand||''),rnpa:String(p.rnpa||''),presentationName,presentationContent,presentationContentUnit,resale:p.kind==='product'?!!p.resale:false,salePrice:row.salePrice??0,wholesalePrice:row.wholesalePrice??0,supplierId:p.supplierId||''});if(fields.supplierId)active(s.suppliers,fields.supplierId); fields.supplierIds=[...new Set(p.supplierIds??(fields.supplierId?[fields.supplierId]:[]))]; for(const sid of fields.supplierIds)active(s.suppliers,sid); fields.supplierId=fields.supplierIds[0]||''
+  }
+  Object.assign(row,fields);if(!p.id)s[p.collection].push(row);result=row;
+ }else if(op==='recipe'){
+  if(!p.itemId){
+   const name=txt(p.name,'Nombre de receta');if(s.items.some(i=>i.name.trim().toLocaleLowerCase()===name.toLocaleLowerCase()))fail('Ya existe un registro con ese nombre. Editá su receta o elegí otro nombre.');
+   const created=operate(s,'master',{collection:'items',name,kind:p.kind,unit:p.unit||'u',rnpa:p.rnpa,resale:false});p={...p,itemId:created.id};
+  }else if(p.name!==undefined){const old=active(s.items,p.itemId);operate(s,'master',{...old,...p,collection:'items',id:old.id,resale:false});}
+	  const it=active(s.items,p.itemId);if(!['product','subproduct'].includes(it.kind))fail('La receta debe producir un producto o subproducto.');active(s.sectors,p.sectorId);const output=positive(p.yield,'Rendimiento');let secondaryItemId=p.secondaryItemId||'';
+	  if(!secondaryItemId&&String(p.secondaryName||'').trim()){const secondaryName=txt(p.secondaryName,'Segundo producto');if(s.items.some(i=>i.name.trim().toLocaleLowerCase()===secondaryName.toLocaleLowerCase()))fail('Ya existe un registro con el nombre del segundo producto. Seleccionalo de la lista.');secondaryItemId=operate(s,'master',{collection:'items',name:secondaryName,kind:it.kind,unit:it.unit,resale:false}).id;}
+	  if(secondaryItemId){const secondary=active(s.items,secondaryItemId);secondaryItemId=secondary.id;if(sameId(secondary.id,it.id))fail('Los dos productos de la elaboración dividida deben ser distintos.');if(!['product','subproduct'].includes(secondary.kind)||secondary.unit!==it.unit)fail('El segundo producto debe ser producto o subproducto y usar la misma unidad.');}
+	  if(!Array.isArray(p.components)||!p.components.length)fail('Agregá componentes.');const keys=new Set();const components=p.components.map(c=>{const component=get(s.items,c.itemId),componentKey=String(component.id);if(sameId(component.id,it.id)||sameId(component.id,secondaryItemId)||keys.has(componentKey))fail('Componente repetido o autorreferencia.');keys.add(componentKey);return{itemId:component.id,qty:positive(c.qty),scope:secondaryItemId?outputScope(c.scope):'both'}});
+	  const sector=active(s.sectors,p.sectorId);let r=s.recipes.find(x=>sameId(x.itemId,it.id));const shelfLifeDays=p.shelfLifeDays===undefined?r?.shelfLifeDays??null:p.shelfLifeDays===null||p.shelfLifeDays===''?null:Number(p.shelfLifeDays);if(shelfLifeDays!==null&&(!Number.isInteger(shelfLifeDays)||shelfLifeDays<0||shelfLifeDays>730))fail('La vida útil debe ser de 0 a 730 días.');const newr={id:r?.id||id(),itemId:it.id,secondaryItemId,sectorId:sector.id,yield:output,shelfLifeDays,components,version:(r?.version||0)+1};s.recipes=s.recipes.filter(x=>!sameId(x.itemId,it.id));s.recipes.push(newr);recipeCost(s,it.id);result=newr;
+ }else if(op==='purchase'||op==='opening'){
+	  stockDate(s,p.date);const it=active(s.items,p.itemId);if(op==='purchase'&&!['raw','packaging'].includes(it.kind)&&!(it.kind==='product'&&it.resale))fail('Solo se pueden ingresar materias primas, envases o productos marcados para reventa.');const stockUnit=it.unit||'u',receivedQty=positive(p.receivedQty??p.qty),inputUnit=String(p.inputUnit||stockUnit),usesPresentation=inputUnit==='presentation';if(usesPresentation&&!it.presentationName)fail('Este artículo no tiene una presentación configurada.');const receivedUnit=usesPresentation?it.presentationName:inputUnit,contentPerPresentation=usesPresentation?it.presentationContent:1,contentUnit=usesPresentation?it.presentationContentUnit:inputUnit,countedPresentation=usesPresentation&&stockUnit==='u',q=countedPresentation?receivedQty:baseQuantity(receivedQty,contentPerPresentation,contentUnit,stockUnit),quantityPerEntry=countedPresentation?1:baseQuantity(1,contentPerPresentation,contentUnit,stockUnit),enteredCost=p.entryUnitCost??p.unitCost,pricePending=enteredCost===undefined||enteredCost===null||enteredCost==='',c=amount(enteredCost??0)/quantityPerEntry;if(op==='purchase'){const linked=it.supplierIds??(it.supplierId?[it.supplierId]:[]);const available=linked.filter(k=>s.suppliers.some(x=>x.id===k&&!x.archived));if(!p.supplierId&&available.length===1)p={...p,supplierId:available[0]};if(!p.supplierId)fail('Seleccioná un proveedor para registrar el ingreso de mercadería.');if(!s.suppliers.some(x=>x.id===p.supplierId&&!x.archived))fail('Seleccioná un proveedor activo para registrar el ingreso.');active(s.suppliers,p.supplierId);}if(p.manufactured){date(p.manufactured);if(p.manufactured>p.date)fail('Elaboración posterior al ingreso.')}const record={id:id(),date:p.date,itemId:it.id,qty:q,unitCost:c,receivedQty,receivedUnit,contentPerPresentation,contentUnit,entryUnitCost:amount(enteredCost??0),pricePending,supplierId:op==='purchase'?p.supplierId:'',supplierLot:txt(p.supplierLot,'Lote de origen'),manufactured:p.manufactured||'',note:String(p.note||''),opening:op==='opening'};
+  const l=newLot(s,{itemId:it.id,qty:q,unitCost:c,d:p.date,expiry:p.expiry,sectorId:'',kind:op==='opening'?'INI':(it.kind==='product'?'PRV':'MP'),sourceId:record.id});record.lotId=l.id;if(record.opening){l.incomplete=true;s.adjustments.push(record)}else s.purchases.push(record);result=record;
+ }else if(op==='produce'){
+ const trialMode=p.trialMode||'';if(trialMode&&!['consumed','pilot'].includes(trialMode))fail('Tipo de prueba inválido.');
+	 const productionLot=trialMode==='consumed'?'':(p.lotCode===undefined||p.lotCode===''?date(p.date).slice(8,10)+p.date.slice(5,7)+p.date.slice(2,4):txt(p.lotCode,'Lote de elaboración'));if(productionLot.length>80)fail('El lote de elaboración admite hasta 80 caracteres.');
+	  stockDate(s,p.date);const r=get(s.recipes,p.recipeId);if(trialMode&&r.secondaryItemId)fail('Las pruebas usan recetas de una sola salida. Registrá la elaboración dividida desde Producción.');if(r.shelfLifeDays!==null&&r.shelfLifeDays!==undefined&&trialMode!=='consumed')p={...p,expiry:recipeExpiry(p.date,r.shelfLifeDays)};active(s.items,r.itemId);if(r.secondaryItemId)active(s.items,r.secondaryItemId);active(s.sectors,r.sectorId);const batches=positive(p.batches,'Cantidad de recetas'),outputs=trialMode==='consumed'?[]:productionOutputs(r,p),requirements=splitRequirements(r,batches,p.primaryQty,p.secondaryQty),expected=Object.fromEntries(requirements.map(c=>[c.itemId,c.required])),actual={};for(const a of p.allocations||[]){const l=get(s.lots,a.lotId);actual[l.itemId]=(actual[l.itemId]||0)+positive(a.qty)}
+  if(Object.keys(actual).length!==Object.keys(expected).length||Object.entries(expected).some(([k,q])=>Math.abs(q-(actual[k]||0))>1e-7*Math.max(1,q)))fail('Los lotes seleccionados deben cubrir exactamente los componentes de la receta escalada.');
+	  const inputs=consume(s,p.allocations,p.date),cost=inputs.reduce((n,a)=>n+a.qty*a.unitCost,0),purpose=trialMode?txt(p.purpose,'Motivo de la prueba'):'';
+  if(trialMode==='consumed'){const record={id:id(),date:p.date,itemId:r.itemId,sectorId:r.sectorId,recipe:structuredClone(r),batches,expectedQty:r.yield*batches,qty:0,unitCost:0,inputs,trial:true,trialMode,purpose,note:String(p.note||'')};s.trials??=[];s.trials.push(record);result=record;}
+	  else {const groupId=outputs.length>1?id():'',allocated=allocateProductionInputs(inputs,r,outputs),totalOutput=outputs.reduce((sum,x)=>sum+x.qty,0),created=[];for(let index=0;index<outputs.length;index++){const output=outputs[index],outputInputs=allocated[index],outputCost=outputInputs.reduce((sum,x)=>sum+x.qty*x.unitCost,0),record={id:id(),productionGroup:groupId,splitRole:output.role,date:p.date,itemId:output.itemId,sectorId:r.sectorId,recipe:structuredClone(r),batches,expectedQty:r.yield*batches*output.qty/totalOutput,qty:output.qty,unitCost:outputCost/output.qty,inputs:outputInputs,trial:trialMode==='pilot',trialMode:trialMode||'',purpose,note:String(p.note||'')};const l=newLot(s,{itemId:output.itemId,qty:output.qty,unitCost:record.unitCost,d:p.date,expiry:p.expiry,sectorId:r.sectorId,kind:lotItem(s,{itemId:output.itemId}).kind==='product'?'PT':'SP',sourceId:record.id});l.code=productionLot+output.suffix;if(trialMode==='pilot')l.status='BLOQUEADO';record.lotId=l.id;s.productions.push(record);created.push(record)}result={...created[0],ids:created.map(x=>x.id),productionGroup:groupId,totalCost:cost};}
+ }else if(op==='sale'){
+  stockDate(s,p.date);active(s.customers,p.customerId);const lines=Array.isArray(p.lines)?p.lines:[p];if(!lines.length||lines.length>30)fail('Agregá entre uno y 30 productos a la venta.');const groupId=id(),records=lines.map(line=>{const priceType=line.priceType||'retail';if(!['retail','wholesale'].includes(priceType))fail('Tipo de precio inválido.');const discountPercent=Number(line.discountPercent||0);if(!Number.isFinite(discountPercent)||discountPercent<0||discountPercent>100)fail('El descuento debe estar entre 0 y 100 %.');const baseUnitPrice=amount(line.unitPrice);const finalUnitPrice=Math.round(baseUnitPrice*(1-discountPercent/100)*100)/100;const it=active(s.items,line.itemId);if(it.kind!=='product')fail('Seleccioná un producto terminado.');for(const a of line.allocations||[])if(get(s.lots,a.lotId).itemId!==it.id)fail('Lote de otro producto.');const inputs=consume(s,line.allocations,p.date),q=inputs.reduce((n,a)=>n+a.qty,0),cost=inputs.reduce((n,a)=>n+a.qty*a.unitCost,0);return{id:id(),groupId,date:p.date,customerId:p.customerId,itemId:it.id,qty:q,unitPrice:finalUnitPrice,baseUnitPrice,priceType,discountPercent,unitCost:cost/q,inputs,note:String(p.note||'')}});const delivery=createDelivery(s,{date:p.date,customerId:p.customerId,note:String(p.note||''),lines:records});records.forEach(record=>record.delivery=delivery);s.sales.push(...records);result={...records[0],ids:records.map(x=>x.id),delivery};
+ }else if(op==='expense'){
+  date(p.date);if(!['fixed','variable'].includes(p.type))fail('Tipo de gasto inválido.');if(p.itemId)active(s.items,p.itemId);result={id:id(),date:p.date,name:txt(p.name),type:p.type,amount:amount(p.amount),itemId:p.itemId||''};s.expenses.push(result);
+ }else if(op==='status'){
+  const l=get(s.lots,p.lotId);if(!['LIBERADO','BLOQUEADO','RECHAZADO'].includes(p.status))fail('Estado inválido.');result={id:id(),lotId:l.id,old:l.status,status:p.status,reason:txt(p.reason,'Motivo'),at:new Date().toISOString()};l.status=p.status;s.adjustments.push(result);
+ }else if(op==='transfer'){
+  fail('Cada empresa tiene un único stock compartido. No se requieren transferencias.');
+ }else if(op==='loss'){
+  stockDate(s,p.date);const l=get(s.lots,p.lotId),q=positive(p.qty);if(q>l.remaining+1e-8)fail('Saldo insuficiente.');const cost=avgCost(s,l.itemId);l.remaining=Math.max(0,l.remaining-q);result={id:id(),date:p.date,lotId:l.id,itemId:l.itemId,qty:q,unitCost:cost,reason:txt(p.reason,'Motivo'),loss:true};s.adjustments.push(result);
+ }else fail('Operación desconocida.');return result;
+}
+export function report(s,month){if(!/^\d{4}-\d{2}$/.test(month||''))fail('Mes inválido.');const within=x=>x.date?.slice(0,7)===month,sales=s.sales.filter(within),ex=s.expenses.filter(within),losses=s.adjustments.filter(x=>x.loss&&within(x));const revenue=sales.reduce((n,x)=>n+x.qty*x.unitPrice,0),cogs=sales.reduce((n,x)=>n+x.qty*x.unitCost,0),expense=ex.reduce((n,x)=>n+x.amount,0),loss=losses.reduce((n,x)=>n+x.qty*x.unitCost,0),units=sales.reduce((n,x)=>n+x.qty,0),fixed=ex.filter(x=>x.type==='fixed').reduce((n,x)=>n+x.amount,0),general=ex.filter(x=>!x.itemId).reduce((n,x)=>n+x.amount,0);const keys=new Set([...sales.map(x=>x.itemId),...ex.map(x=>x.itemId).filter(Boolean),...losses.map(x=>x.itemId)]);
+ const products=[...keys].map(k=>{const ss=sales.filter(x=>x.itemId===k),q=ss.reduce((n,x)=>n+x.qty,0),income=ss.reduce((n,x)=>n+x.qty*x.unitPrice,0),cost=ss.reduce((n,x)=>n+x.qty*x.unitCost,0),assigned=(units?general*q/units:0)+ex.filter(x=>x.itemId===k).reduce((n,x)=>n+x.amount,0)+losses.filter(x=>x.itemId===k).reduce((n,x)=>n+x.qty*x.unitCost,0);return{itemId:k,qty:q,income,cost,assigned,net:income-cost-assigned}});
+ return{month,revenue,cogs,expense,loss,units,fixed,net:revenue-cogs-expense-loss,unallocated:units?0:general,products,purchases:s.purchases.filter(within).reduce((n,x)=>n+x.qty*x.unitCost,0),production:s.productions.filter(within),sales};
+}
+export {traceDetails as trace} from './trace-details.mjs';
