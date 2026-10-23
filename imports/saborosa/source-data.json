@@ -1,0 +1,25 @@
+{
+  "company": "Saborosa",
+  "source": "clientes.docx, productos.docx, proveedores.docx",
+  "notes": ["Nombres conservados exactamente como aparecen en los archivos. No se inventaron cantidades, unidades, precios, recetas, lotes, stock ni vencimientos."],
+  "customers": ["Casino rosario","Vendetta casino rosario","Unr","Britanico","Arsa","G","oo","d food","Marshall","Poetica","General Food","Centro castilla","Sil –vi","Mirage","Estilo","Altos rincón","La cautiva","I.M.L","Hotel Howard Jhonsson","World beer","Vía Apia","El paso","El establo","Sable paris","Club union central","Club provincial","Club universitario","Jockey club","Gran lago","Palo borrcho","Antartida","Esquina alvear","Kendryck","El pericon","Supermercados La Reina","Celet Food","La fragua","Pagos del sur","Somos musica","Almirante","Vip","Dulce vida","Clásica argentina","Boero","Golf club","La tagliata","Patagonia tango","Cuervo blanco","Mendieta","Yoi","Suipacha pool","Vegart","Cementerio el prado","Siglo 21","Anabel","El refugio","Birria","Don garcia","Calu eventos","Oasis","Il papagallo","Il veckio","Genoveba","La zorrita","Piel de toro","Memphis bar","Club bancario","Pizzas del bosque","Hotel mercure","Centralito","Martin pescador","Cosme","Paseo ludueña","Rufinata","Micro go","Alto monte","Piacere","Ger (Gimnasia y esgrima)","Universidad Austral","Las heras"],
+  "finishedProducts": ["Canelones: carne y verdura, pollo","Suprema napolitana","Milanesa napolitana de ternera","Chopsuei","Filete de pollo con arroz","Bondiola de cerdo con papas","Costeleta de cerdo con papas","Pollo relleno con papas","Empanadas: verdura, carne, pollo, jamón y queso","Pizza: cebolla, muzarella, jamón y queso","Tartas: calabaza y choclo, verdura, jamón y queso","Lasaña","Pack fit: minitartas"],
+  "rawMaterials": ["Premezcla","rebozador","Mostaza","Levadura","Sal","Maicena","Aceite liquido","Aceite vegetal","Arroz","Jamón cocido","Paleta de cerdo","Muzarella","Queso dambo","Salsa de tomate","Pimienta","Orégano","Nuez moscada","Finas hierbas","Provenzal","Manteca","Crema de leche","Queso crema","Filete de pollo","Pollo entero","Carne picada","Carne cuadrada","Nalga","Carne de cerdo con hueso","Carne de cerdo sin hueso","Acelga","Pimientos","Zanahorias","Cebolla","Apio","Puerro","Verdeo","Calabaza","Choclo","Papas noisettes","Papas bastón","Papas smiles","Tapa para empanadas","Leche","Huevo","Papas","Miel","Salsa de soja","Pan de hamburguesa","Pan lactal"],
+  "suppliers": [
+    {"name":"Carnicería integrada","items":"pollo, filete de pollo, picada, costeleta de cerdo, bondiola de cerdo, nalga"},
+    {"name":"exportación al vacío","items":"cuadrada exportación al vacío"},
+    {"name":"Friar","items":"Bondiolas de cerdo"},
+    {"name":"Alimentos magros","items":"bondiola de cerdo, jamón cocido, paleta de cerdo"},
+    {"name":"Lardone","items":"queso barra, queso crema, crema de leche, leche, mostaza"},
+    {"name":"Cepro","items":"papas noisette, papas bastón, papas smiles, crema de leche, queso crema, sal, salsa de soja, maicena, leche, orégano, nuez moscada, pimienta, provenzal, finas hierbas, mostaza, miel"},
+    {"name":"Macro","items":"paleta de cerdo, queso barra, queso crema, crema de leche, maicena, sal, papas bastón, mostaza"},
+    {"name":"La montevideana","items":"papas bastón, papas noisetes, papas smiles"},
+    {"name":"Almacen del celiaco","items":"premezcla, rebozador, tapas de empanada, discos de tarta"},
+    {"name":"Orali","items":"tapas de empanadas"},
+    {"name":"Marmiroli","items":"pollo, filette de pollo, leche, huevo"},
+    {"name":"MCF (Mercado de Concentracion Fisherton)","items":"pimiento, verdeo, apio, puerro, calabaza, papa, zanahoria, cebolla"},
+    {"name":"Francks","items":"pan de hamburguesa, pan lactal"},
+    {"name":"Ridolfo","items":"levadura, salsa de tomate"},
+    {"name":"Gasfran","items":"salsa de tomate"}
+  ]
+}
