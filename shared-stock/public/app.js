@@ -192,6 +192,7 @@ const actions={
  async adminExit(){adminCompanyId=null;state=null;view='dashboard';await refresh()},
  async adminData(){view='adminData';await render()},
  adminCorrect(id){adminCorrectRecord(id)},
+	 async adminRemove(id){if(!adminCompanyId)return;const record=(state[correctionSection]||[]).find(x=>sameId(x.id,id));if(!record||!confirm('Eliminar definitivamente "'+correctionRecordLabel(record,correctionSection)+'"? Esta acción no se puede deshacer.'))return;await api('admin/remove',{collection:correctionSection,recordId:id,version,reason:'Eliminación administrativa'});await refresh();message('Registro eliminado definitivamente.')},
 	 adminCorrectLot(id){correctionSection='lots';adminCorrectRecord(id)},
  adminDelete(userId){const u=admin.users.find(x=>x.id===userId),c=admin.companies.find(x=>x.id===u.companyId);modal('Eliminar empresa '+c.name,'<p>Se retirará la empresa y se cerrarán las sesiones de todos sus usuarios. Sus datos quedarán disponibles en Empresas eliminadas para recuperarlos.</p>'+field('confirmation','Escribí el nombre de la empresa','text','','required'),p=>api('admin',{op:'deleteCompany',userId,...p}),'Eliminar empresa')},
  async adminRestore(companyId){await api('admin',{op:'restoreCompany',companyId});await refresh();message('Empresa recuperada correctamente.')},
@@ -329,7 +330,7 @@ function adminDataScreen(c){
  c.innerHTML='<h2>Corregir datos de '+esc(state.company)+'</h2><p>Solo la cuenta administradora puede usar estas correcciones. Cada cambio queda registrado en el historial.</p><div class="toolbar">'+select('correctionSection','Sección',correctionSections.map(([id,name])=>({id,name})),correctionSection,false)+field('correctionQuery','Buscar','search',correctionQuery)+'</div><div id="correctionRecords"></div>';
  const draw=()=>{const target=$('#correctionRecords');if(correctionSection==='configuration'){target.innerHTML=btn('Editar empresa y configuración','adminCorrect','configuration');return;}
  const records=(state[correctionSection]||[]).filter(r=>searchText(correctionRecordLabel(r,correctionSection)).includes(searchText(correctionQuery)));
- target.innerHTML=rows(['Registro','Detalle','Acción'],records.map(r=>[esc(correctionRecordLabel(r,correctionSection)),esc(correctionSection==='recipes'?'Rendimiento: '+num(r.yield)+' · '+(r.components||[]).length+' componentes':correctionSection==='lots'?'Stock: '+num(r.remaining)+' '+(item(r.itemId)?.unit||''):(r.status||r.date||'')),btn('Corregir','adminCorrect',r.id)]));};
+ target.innerHTML=rows(['Registro','Detalle','Acción'],records.map(r=>[esc(correctionRecordLabel(r,correctionSection)),esc(correctionSection==='recipes'?'Rendimiento: '+num(r.yield)+' · '+(r.components||[]).length+' componentes':correctionSection==='lots'?'Stock: '+num(r.remaining)+' '+(item(r.itemId)?.unit||''):(r.status||r.date||'')),btn('Corregir','adminCorrect',r.id)+btn('Eliminar','adminRemove',r.id,'danger')]));};
  $('[name=correctionSection]').onchange=e=>{correctionSection=e.target.value;draw()};$('[name=correctionQuery]').oninput=e=>{correctionQuery=e.target.value;draw()};draw();
 }
 function adminCorrectRecord(recordId){
@@ -365,4 +366,5 @@ function adminCorrectRecord(recordId){
 }
 
 (async()=>{try{const j=await api('me');user=j.user;storeJSON(offlineUserKey,user);if(user.mustChange)passwordScreen();else{await refresh();syncOfflineQueue().catch(()=>{})}}catch{const cached=savedJSON(offlineUserKey);if(cached){user=cached;offlineMode=true;await refresh()}else login()}})();
+
 
