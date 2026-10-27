@@ -7,6 +7,7 @@ COPY admin-delete.tar.gz.b64 /tmp/admin-delete.tar.gz.b64
 RUN base64 -d /tmp/admin-delete.tar.gz.b64 | tar -xzf - -C /app && rm -f /tmp/admin-delete.tar.gz.b64
 COPY shared-stock/ /app/gestion-integrada/
 WORKDIR /app/gestion-integrada
+RUN npm install --no-save --ignore-scripts --omit=optional --package-lock=false pdfjs-dist@6.4.299
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-CMD ["node", "start-saborosa.mjs"]
+CMD ["node", "start-juni.mjs"]
