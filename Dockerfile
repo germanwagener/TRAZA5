@@ -9,4 +9,4 @@ COPY shared-stock/ /app/gestion-integrada/
 WORKDIR /app/gestion-integrada
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-CMD ["node", "online.mjs"]
+CMD ["node", "start-saborosa.mjs"]
