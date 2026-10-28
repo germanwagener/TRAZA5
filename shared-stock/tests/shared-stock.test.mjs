@@ -2,12 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {empty,operate,trace} from '../domain.mjs';
 import {suggestLots} from '../planning.mjs';
-test('producción usa lotes de todos los sectores sin alterar historia ni otra empresa',()=>{
+for(const archived of [false,true])test('producción usa stock compartido con sector histórico archivado='+archived+' sin alterar historia ni otra empresa',()=>{
  const s=empty('Empresa A'),other=empty('Empresa B'),otherBefore=structuredClone(other);
  const depot=operate(s,'master',{collection:'sectors',name:'Depósito'}),kitchen=operate(s,'master',{collection:'sectors',name:'Cocina'});
  const supplier=operate(s,'master',{collection:'suppliers',name:'Proveedor'});
  const ingredient=operate(s,'master',{collection:'items',name:'Mozzarella',kind:'raw',unit:'kg'});
  const recipe=operate(s,'recipe',{name:'Pizza',kind:'product',unit:'u',sectorId:kitchen.id,yield:2,components:[{itemId:ingredient.id,qty:3}]});
+ kitchen.archived=archived;
+ const sectorsBefore=structuredClone(s.sectors);
  const received=operate(s,'purchase',{date:'2026-10-01',itemId:ingredient.id,supplierId:supplier.id,supplierLot:'PROV-1',qty:5,unitCost:10,expiry:'2026-11-01'});
  assert.equal(s.lots[0].sectorId,'');
  // Represent existing records: these fields and past transfers must survive unchanged.
@@ -19,6 +21,7 @@ test('producción usa lotes de todos los sectores sin alterar historia ni otra e
  assert.equal(s.lots[0].remaining,2);assert.equal(s.lots[0].code,lotCode);assert.equal(s.lots[0].sectorId,depot.id);
  assert.equal(produced.inputs[0].lotId,received.lotId);assert.ok(trace(s,received.lotId).descendants.includes(produced.lotId));
  assert.deepEqual(s.transfers,history);assert.deepEqual(s.purchases,purchases);assert.deepEqual(other,otherBefore);
+ assert.deepEqual(s.sectors,sectorsBefore);
  const before=structuredClone(s);assert.throws(()=>operate(s,'transfer',{date:'2026-10-03',lotId:received.lotId,sectorId:kitchen.id}),/stock compartido/);assert.deepEqual(s,before);
 });
 test('stock compartido sigue excluyendo lotes bloqueados, vencidos o futuros',()=>{

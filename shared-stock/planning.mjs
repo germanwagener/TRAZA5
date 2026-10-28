@@ -1,8 +1,8 @@
-import {positive,get} from './domain.mjs';
+import {positive,get,needsLot} from './domain.mjs';
 const validDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||Number.isNaN(Date.parse(d))||new Date(d).toISOString().slice(0,10)!==d)throw Error('Fecha inválida.');return d};
 export function suggestLots(s,requirements,date,sector){
  validDate(date);const allocations=[],shortages=[];
- const totals=new Map();for(const r of requirements){get(s.items,r.itemId);totals.set(r.itemId,(totals.get(r.itemId)||0)+positive(r.qty));}
+ const totals=new Map();for(const r of requirements){const it=get(s.items,r.itemId);positive(r.qty);if(!needsLot(it))continue;totals.set(r.itemId,(totals.get(r.itemId)||0)+positive(r.qty));}
  for(const [itemId,qty] of totals){let pending=qty;
   const lots=s.lots.filter(l=>l.itemId===itemId&&l.remaining>0&&l.status==='LIBERADO'&&l.date<=date&&(!l.expiry||l.expiry>=date)).sort((a,b)=>a.date.localeCompare(b.date)||(a.expiry||'9999').localeCompare(b.expiry||'9999')||a.code.localeCompare(b.code));
   for(const l of lots){if(pending<=1e-8)break;const n=Math.min(l.remaining,pending);allocations.push({lotId:l.id,qty:n});pending-=n;}
@@ -12,7 +12,7 @@ export function suggestLots(s,requirements,date,sector){
 export function forecast(s,date){
  validDate(date);const end=Date.parse(date),start=end-29*86400000;
  const events=[...s.productions,...s.sales].filter(x=>Date.parse(x.date)>=start&&Date.parse(x.date)<=end);
- return s.items.filter(i=>!i.archived).map(i=>{
+ return s.items.filter(i=>!i.archived&&needsLot(i)).map(i=>{
   const usage=events.map(e=>({date:e.date,qty:e.inputs.filter(a=>a.itemId===i.id).reduce((n,a)=>n+a.qty,0)})).filter(x=>x.qty>0);
   const days=new Set(usage.map(x=>x.date)).size;
   const first=s.lots.filter(l=>l.itemId===i.id&&l.date<=date).map(l=>Date.parse(l.date)).sort((a,b)=>a-b)[0];
