@@ -156,6 +156,43 @@ const server=http.createServer(async(req,res)=>{try{
   return send(res,200,{companyId:c.id,companyName:c.name,version:c.version,rows:preview(JSON.parse(c.state),p.type,input)});
  }
  if(path==='/api/import/apply'&&req.method==='POST')return send(res,200,applyList(db,u,selectedCompanyId,await body(req)));
+ if(path==='/api/admin/bulk-pending-sales'&&req.method==='POST'){
+  if(u.role!=='admin'||u.username!=='juni')return send(res,403,{error:'Usá la cuenta Juni para cargar ventas.'});
+  const c=company(), payload=await body(req); if(payload.companyId!==c.id)throw Error('Empresa destino incorrecta.');
+  const result=tx(()=>{
+   const current=db.prepare('SELECT * FROM companies WHERE id=?').get(c.id), s=JSON.parse(current.state);
+   if(payload.version!==current.version)throw Error('Los datos cambiaron. Actualizá la pantalla antes de cargar.');
+   const file=JSON.parse(readFileSync(join(root,'pending-sales.json'),'utf8')), created=[], skipped=[];
+   const norm=x=>String(x??'').normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+   const aliases=new Map([['muzzarella','Mozzarella'],['doble muzzarella','Doble Mozzarella'],['cuatro quesos','4 Quesos'],['betel','Be-Tel'],['integral mozzarella','Mozzarella Integral'],['fugazza','Fugazzeta']]);
+   for(const sale of file){
+    const ref=String(sale.number||''); if(!ref){skipped.push({number:'',reason:'sin número'});continue;}
+    if(s.sales.some(x=>String(x.note||'').includes('Comprobante '+ref))){skipped.push({number:ref,reason:'ya cargado'});continue;}
+    const customer=s.customers.find(x=>String(x.code||'')===String(sale.customerCode||''))||s.customers.find(x=>norm(x.name)===norm(sale.customer));
+    if(!customer){skipped.push({number:ref,reason:'cliente no encontrado'});continue;}
+    const lines=[];let bad='';
+    for(const raw of sale.items||[]){
+      const originalName=String(raw.name||'');
+      const label=originalName.replace(/\s+x\s*\d+u?$/i,'').trim();
+      const pack=/x\s*(\d+)u/i.exec(originalName);
+      const name=pack||norm(originalName).includes('empanada')
+       ?'Empanadas'
+       :(aliases.get(norm(label))||label);
+      const item=s.items.find(x=>norm(x.name)===norm(name)&&x.kind==='product');
+      if(!item){bad='producto no encontrado: '+label;break;}
+      const qty=Number(raw.qty)*(pack?Number(pack[1]):1); if(!Number.isFinite(qty)||qty<=0){bad='cantidad inválida';break;}
+      const suggested=suggestLots(s,[{itemId:item.id,qty}],sale.date); if(suggested.shortages.length){bad='stock insuficiente: '+name;break;}
+      const divisor=pack?Number(pack[1]):1;
+      lines.push({itemId:item.id,priceType:'retail',discountPercent:0,unitPrice:(Number(raw.price)||0)/divisor,allocations:suggested.allocations});
+    }
+    if(bad){skipped.push({number:ref,reason:bad});continue;}
+    const backup=JSON.stringify(s);try{const r=operate(s,'sale',{date:sale.date,customerId:customer.id,lines,note:'Comprobante '+ref+(sale.shipping?' · COSTO ENVÍO '+sale.shipping:'')});created.push(ref);}catch(e){const restored=JSON.parse(backup);for(const k of Object.keys(s))delete s[k];Object.assign(s,restored);skipped.push({number:ref,reason:e.message});}
+   }
+   if(created.length)db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),c.id);
+   log({...u,company_id:c.id},'admin_bulk_pending_sales',{created:created.length,skipped:skipped.length,details:skipped});
+   return {created,skipped,version:current.version+(created.length?1:0)};
+  }); return send(res,200,{result});
+ }
  if(path==='/api/state'&&req.method==='GET'){const c=company(),s=JSON.parse(c.state);return send(res,200,{state:JSON.parse(JSON.stringify(s,(key,value)=>key==='data'&&typeof value==='string'&&value.startsWith('data:application/pdf;')?undefined:value)),version:c.version,estimates:Object.fromEntries(s.items.map(i=>[i.id,{average:avgCost(s,i.id),recipe:recipeCost(s,i.id)}]))})}
  if(path==='/api/planning'&&req.method==='GET')return send(res,200,{rows:forecast(JSON.parse(company().state),url.searchParams.get('date'))});
  if(path==='/api/suggest'&&req.method==='GET'){
