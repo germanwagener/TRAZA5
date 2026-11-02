@@ -1,0 +1,2738 @@
+[
+  {
+    "page": 2,
+    "date": "2026-10-13",
+    "number": "0002-00009032",
+    "customer": "EMILIANO BOTTEGA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 2,
+        "price": 4900.0,
+        "total": 9800.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 33,
+        "price": 5400.0,
+        "total": 178200.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 55,
+        "price": 4900.0,
+        "total": 269500.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      }
+    ],
+    "shipping": 0,
+    "total": 551200.0,
+    "customerCode": "1012"
+  },
+  {
+    "page": 3,
+    "date": "2026-10-13",
+    "number": "0002-00009033",
+    "customer": "EMILIANO BOTTEGA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 16,
+        "price": 4900.0,
+        "total": 78400.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 25,
+        "price": 5400.0,
+        "total": 135000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 19,
+        "price": 4900.0,
+        "total": 93100.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 11,
+        "price": 5300.0,
+        "total": 58300.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 10,
+        "price": 5700.0,
+        "total": 57000.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 10,
+        "price": 5400.0,
+        "total": 54000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 12,
+        "price": 5700.0,
+        "total": 68400.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 11,
+        "price": 5700.0,
+        "total": 62700.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 13,
+        "price": 10000.0,
+        "total": 130000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 9,
+        "price": 10000.0,
+        "total": 90000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CHOCLO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 989900.0,
+    "customerCode": "1012"
+  },
+  {
+    "page": 12,
+    "date": "2026-10-15",
+    "number": "0002-00009042",
+    "customer": "CARLOS NADALIN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 7,
+        "price": 5700.0,
+        "total": 39900.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 2,
+        "price": 6700.0,
+        "total": 13400.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 2,
+        "price": 6100.0,
+        "total": 12200.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 4,
+        "price": 6200.0,
+        "total": 24800.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CEBOLLA x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 2,
+        "price": 8200.0,
+        "total": 16400.0
+      }
+    ],
+    "shipping": 0,
+    "total": 200700.0,
+    "customerCode": "2259"
+  },
+  {
+    "page": 13,
+    "date": "2026-10-15",
+    "number": "0002-00009043",
+    "customer": "ANTONELLA TESURI",
+    "items": [
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 30000.0,
+    "customerCode": "2327"
+  },
+  {
+    "page": 19,
+    "date": "2026-10-15",
+    "number": "0002-00009049",
+    "customer": "CECILIA TRABATTONI",
+    "items": [
+      {
+        "name": "ESPECIAL",
+        "qty": 5,
+        "price": 7000.0,
+        "total": 35000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 3,
+        "price": 7000.0,
+        "total": 21000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 2,
+        "price": 7000.0,
+        "total": 14000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 2,
+        "price": 13800.0,
+        "total": 27600.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 13800.0,
+        "total": 27600.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 129200.0,
+    "customerCode": "4183"
+  },
+  {
+    "page": 20,
+    "date": "2026-10-15",
+    "number": "0002-00009050",
+    "customer": "CANDELA HERRERA",
+    "items": [
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "ATUN x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 84000.0,
+    "customerCode": "2252"
+  },
+  {
+    "page": 21,
+    "date": "2026-10-15",
+    "number": "0002-00009051",
+    "customer": "LUCIANO ELLEMBERG",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 6,
+        "price": 5700.0,
+        "total": 34200.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 4,
+        "price": 6100.0,
+        "total": 24400.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 72600.0,
+    "customerCode": "2322"
+  },
+  {
+    "page": 23,
+    "date": "2026-10-15",
+    "number": "0002-00009053",
+    "customer": "SELENE ZEBALLOS",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 5,
+        "price": 7000.0,
+        "total": 35000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 4,
+        "price": 7000.0,
+        "total": 28000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 3,
+        "price": 7000.0,
+        "total": 21000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 84000.0,
+    "customerCode": "4444"
+  },
+  {
+    "page": 25,
+    "date": "2026-10-15",
+    "number": "0002-00009055",
+    "customer": "MARIA GABRIELA PEREYRA / MISERICORDIA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 150,
+        "price": 4900.0,
+        "total": 735000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 150,
+        "price": 5000.0,
+        "total": 750000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 6,
+        "price": 5300.0,
+        "total": 31800.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 4,
+        "price": 8200.0,
+        "total": 32800.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 1613600.0,
+    "customerCode": "8297"
+  },
+  {
+    "page": 26,
+    "date": "2026-10-15",
+    "number": "0002-00009056",
+    "customer": "JAQUELINA BAGALONI / ESC MANUEL BELGRANO 183",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 392,
+        "price": 4600.0,
+        "total": 1803200.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 408,
+        "price": 4600.0,
+        "total": 1876800.0
+      }
+    ],
+    "shipping": 25000.0,
+    "total": 3705000.0,
+    "customerCode": "8301"
+  },
+  {
+    "page": 28,
+    "date": "2026-10-15",
+    "number": "0002-00009058",
+    "customer": "CRISTIAN MARCELLONI",
+    "items": [
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "CHOCLO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "ATUN x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 214000.0,
+    "customerCode": "2255"
+  },
+  {
+    "page": 29,
+    "date": "2026-10-15",
+    "number": "0002-00009059",
+    "customer": "LOCAL / AGREGADOS",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CEBOLLA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 60000.0,
+    "customerCode": "1"
+  },
+  {
+    "page": 35,
+    "date": "2026-10-16",
+    "number": "0002-00009065",
+    "customer": "ESTELA PIMIENTA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 12,
+        "price": 5100.0,
+        "total": 61200.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 5100.0,
+        "total": 10200.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 2,
+        "price": 5100.0,
+        "total": 10200.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 141600.0,
+    "customerCode": "2296"
+  },
+  {
+    "page": 36,
+    "date": "2026-10-16",
+    "number": "0002-00009066",
+    "customer": "VILMA MAIDANA",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 10,
+        "price": 5800.0,
+        "total": 58000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 5,
+        "price": 6300.0,
+        "total": 31500.0
+      },
+      {
+        "name": "CARNE SALADA x 6u",
+        "qty": 4,
+        "price": 5500.0,
+        "total": 22000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 192200.0,
+    "customerCode": "3025"
+  },
+  {
+    "page": 37,
+    "date": "2026-10-16",
+    "number": "0002-00009067",
+    "customer": "TOMAS",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 2,
+        "price": 9000.0,
+        "total": 18000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 8000.0,
+        "total": 16000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 9500.0,
+        "total": 9500.0
+      },
+      {
+        "name": "JAMON Y QUESO x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      },
+      {
+        "name": "CARNE SALADA x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 58500.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 42,
+    "date": "2026-10-16",
+    "number": "0002-00009072",
+    "customer": "VALENTINA GRANATTO",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 10,
+        "price": 5400.0,
+        "total": 54000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 115400.0,
+    "customerCode": "1005"
+  },
+  {
+    "page": 45,
+    "date": "2026-10-16",
+    "number": "0002-00009075",
+    "customer": "EMILSE",
+    "items": [
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 13800.0,
+        "total": 27600.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 1,
+        "price": 13800.0,
+        "total": 13800.0
+      }
+    ],
+    "shipping": 0,
+    "total": 41400.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 46,
+    "date": "2026-10-16",
+    "number": "0002-00009076",
+    "customer": "FLAVIA FACCHIN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 10,
+        "price": 5700.0,
+        "total": 57000.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 8,
+        "price": 5400.0,
+        "total": 43200.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 10,
+        "price": 5700.0,
+        "total": 57000.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 10,
+        "price": 5700.0,
+        "total": 57000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 471200.0,
+    "customerCode": "1017"
+  },
+  {
+    "page": 53,
+    "date": "2026-10-16",
+    "number": "0002-00009083",
+    "customer": "JAVIER PEREZ",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CARNE SALADA x 6u",
+        "qty": 4,
+        "price": 5500.0,
+        "total": 22000.0
+      },
+      {
+        "name": "CARNE DULCE x 6u",
+        "qty": 4,
+        "price": 5500.0,
+        "total": 22000.0
+      },
+      {
+        "name": "POLLO x 6u",
+        "qty": 6,
+        "price": 5500.0,
+        "total": 33000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 183000.0,
+    "customerCode": "2184"
+  },
+  {
+    "page": 54,
+    "date": "2026-10-19",
+    "number": "0002-00009084",
+    "customer": "AGUSTINA BARDUCCI / SPACE DANCE",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 130,
+        "price": 4800.0,
+        "total": 624000.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 43,
+        "price": 5100.0,
+        "total": 219300.0
+      }
+    ],
+    "shipping": 20000.0,
+    "total": 863300.0,
+    "customerCode": "8553"
+  },
+  {
+    "page": 62,
+    "date": "2026-10-19",
+    "number": "0002-00009092",
+    "customer": "YANINA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 3,
+        "price": 4900.0,
+        "total": 14700.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 26,
+        "price": 4900.0,
+        "total": 127400.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 12,
+        "price": 9800.0,
+        "total": 117600.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 12,
+        "price": 9800.0,
+        "total": 117600.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 1,
+        "price": 9800.0,
+        "total": 9800.0
+      }
+    ],
+    "shipping": 0,
+    "total": 387100.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 63,
+    "date": "2026-10-19",
+    "number": "0002-00009093",
+    "customer": "MARIA FERNANDA PEREZ / ACADEMIA DE GIMNASIA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 7,
+        "price": 5000.0,
+        "total": 35000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 18,
+        "price": 5000.0,
+        "total": 90000.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 7,
+        "price": 5200.0,
+        "total": 36400.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 1,
+        "price": 5200.0,
+        "total": 5200.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 3,
+        "price": 10500.0,
+        "total": 31500.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 1,
+        "price": 10500.0,
+        "total": 10500.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 6,
+        "price": 10500.0,
+        "total": 63000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 1,
+        "price": 10500.0,
+        "total": 10500.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 1,
+        "price": 10500.0,
+        "total": 10500.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 296600.0,
+    "customerCode": "8591"
+  },
+  {
+    "page": 66,
+    "date": "2026-10-20",
+    "number": "0002-00009096",
+    "customer": "EMILIANO BOTTEGA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 15,
+        "price": 4900.0,
+        "total": 73500.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 40,
+        "price": 5400.0,
+        "total": 216000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 15,
+        "price": 4900.0,
+        "total": 73500.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 13,
+        "price": 5700.0,
+        "total": 74100.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 12,
+        "price": 5300.0,
+        "total": 63600.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 8,
+        "price": 5400.0,
+        "total": 43200.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 12,
+        "price": 5700.0,
+        "total": 68400.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 10,
+        "price": 5700.0,
+        "total": 57000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "CHOCLO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 7,
+        "price": 10000.0,
+        "total": 70000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CEBOLLA x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 17,
+        "price": 10000.0,
+        "total": 170000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 1102300.0,
+    "customerCode": "1012"
+  },
+  {
+    "page": 68,
+    "date": "2026-10-20",
+    "number": "0002-00009098",
+    "customer": "MAGALI ILIEFF",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 2,
+        "price": 5800.0,
+        "total": 11600.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 8,
+        "price": 5300.0,
+        "total": 42400.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 7,
+        "price": 6300.0,
+        "total": 44100.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 7,
+        "price": 10000.0,
+        "total": 70000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "CHOCLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 6,
+        "price": 10000.0,
+        "total": 60000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 290500.0,
+    "customerCode": "2338"
+  },
+  {
+    "page": 70,
+    "date": "2026-10-21",
+    "number": "0002-00009100",
+    "customer": "MAGALI ILIEFF",
+    "items": [
+      {
+        "name": "NAPOLITANA",
+        "qty": 1,
+        "price": 5700.0,
+        "total": 5700.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 32800.0,
+    "customerCode": "2338"
+  },
+  {
+    "page": 71,
+    "date": "2026-10-21",
+    "number": "0002-00009101",
+    "customer": "CECILIA ESTEBAN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 30,
+        "price": 4900.0,
+        "total": 147000.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 30,
+        "price": 5400.0,
+        "total": 162000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 5,
+        "price": 4900.0,
+        "total": 24500.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 30,
+        "price": 5700.0,
+        "total": 171000.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 5,
+        "price": 5400.0,
+        "total": 27000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 3,
+        "price": 5300.0,
+        "total": 15900.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 3,
+        "price": 5300.0,
+        "total": 15900.0
+      },
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 5,
+        "price": 8200.0,
+        "total": 41000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 793800.0,
+    "customerCode": "1001"
+  },
+  {
+    "page": 74,
+    "date": "2026-10-21",
+    "number": "0002-00009104",
+    "customer": "CHRISTIAN SENGER",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 20,
+        "price": 5400.0,
+        "total": 108000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 20,
+        "price": 4900.0,
+        "total": 98000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 20,
+        "price": 5700.0,
+        "total": 114000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 556500.0,
+    "customerCode": "1016"
+  },
+  {
+    "page": 77,
+    "date": "2026-10-21",
+    "number": "0002-00009107",
+    "customer": "LOCAL / AGREGADOS",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 12,
+        "price": 7000.0,
+        "total": 84000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 12,
+        "price": 7000.0,
+        "total": 84000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 9,
+        "price": 7000.0,
+        "total": 63000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 2,
+        "price": 13800.0,
+        "total": 27600.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 1,
+        "price": 13800.0,
+        "total": 13800.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 1,
+        "price": 9000.0,
+        "total": 9000.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 1,
+        "price": 8500.0,
+        "total": 8500.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 2,
+        "price": 7000.0,
+        "total": 14000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 311900.0,
+    "customerCode": "1"
+  },
+  {
+    "page": 79,
+    "date": "2026-10-22",
+    "number": "0002-00009109",
+    "customer": "LUCAS GONZALEZ / SILVINA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 10,
+        "price": 5100.0,
+        "total": 51000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 7,
+        "price": 5100.0,
+        "total": 35700.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 1,
+        "price": 5100.0,
+        "total": 5100.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 1,
+        "price": 5400.0,
+        "total": 5400.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 5900.0,
+        "total": 5900.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 2,
+        "price": 5900.0,
+        "total": 11800.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 1,
+        "price": 5400.0,
+        "total": 5400.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 1,
+        "price": 5400.0,
+        "total": 5400.0
+      }
+    ],
+    "shipping": 0,
+    "total": 125700.0,
+    "customerCode": "2080"
+  },
+  {
+    "page": 80,
+    "date": "2026-10-22",
+    "number": "0002-00009110",
+    "customer": "CARLOS NADALIN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 1,
+        "price": 5700.0,
+        "total": 5700.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 1,
+        "price": 6100.0,
+        "total": 6100.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 6700.0,
+        "total": 6700.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 3,
+        "price": 6200.0,
+        "total": 18600.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 2,
+        "price": 6700.0,
+        "total": 13400.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 1,
+        "price": 6100.0,
+        "total": 6100.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CEBOLLA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "ATUN x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CARNE SALADA x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "CARNE DULCE x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "JAMON Y QUESO x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "VERDURA x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 180000.0,
+    "customerCode": "2259"
+  },
+  {
+    "page": 88,
+    "date": "2026-10-22",
+    "number": "0002-00009118",
+    "customer": "VANY",
+    "items": [
+      {
+        "name": "ESPECIAL",
+        "qty": 5,
+        "price": 7000.0,
+        "total": 35000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 5,
+        "price": 7000.0,
+        "total": 35000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 3,
+        "price": 8500.0,
+        "total": 25500.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 3,
+        "price": 8500.0,
+        "total": 25500.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 5,
+        "price": 13800.0,
+        "total": 69000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 5,
+        "price": 13800.0,
+        "total": 69000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 263000.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 92,
+    "date": "2026-10-22",
+    "number": "0002-00009122",
+    "customer": "LOCAL",
+    "items": [
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 8000.0,
+        "total": 16000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 1,
+        "price": 13800.0,
+        "total": 13800.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 1,
+        "price": 13800.0,
+        "total": 13800.0
+      }
+    ],
+    "shipping": 0,
+    "total": 51600.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 96,
+    "date": "2026-10-22",
+    "number": "0002-00009126",
+    "customer": "CARLOS NADALIN",
+    "items": [
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 1,
+        "price": 6100.0,
+        "total": 6100.0
+      },
+      {
+        "name": "MUZZARELLA",
+        "qty": 1,
+        "price": 5700.0,
+        "total": 5700.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 6700.0,
+        "total": 6700.0
+      },
+      {
+        "name": "JAMON Y QUESO x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "CEBOLLA x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 29500.0,
+    "customerCode": "2259"
+  },
+  {
+    "page": 103,
+    "date": "2026-10-23",
+    "number": "0002-00009133",
+    "customer": "JAVIER PEREZ",
+    "items": [
+      {
+        "name": "FUGAZZA",
+        "qty": 4,
+        "price": 5300.0,
+        "total": 21200.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 4,
+        "price": 5700.0,
+        "total": 22800.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 4,
+        "price": 5700.0,
+        "total": 22800.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 4,
+        "price": 6300.0,
+        "total": 25200.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 4,
+        "price": 6300.0,
+        "total": 25200.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 147200.0,
+    "customerCode": "2184"
+  },
+  {
+    "page": 107,
+    "date": "2026-10-23",
+    "number": "0002-00009137",
+    "customer": "MELINA POLLISE",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 10,
+        "price": 5400.0,
+        "total": 54000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 8,
+        "price": 5700.0,
+        "total": 45600.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 4,
+        "price": 5300.0,
+        "total": 21200.0
+      }
+    ],
+    "shipping": 0,
+    "total": 268500.0,
+    "customerCode": "1011"
+  },
+  {
+    "page": 111,
+    "date": "2026-10-26",
+    "number": "0002-00009141",
+    "customer": "MELINA POLLISE",
+    "items": [
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 4,
+        "price": 8200.0,
+        "total": 32800.0
+      }
+    ],
+    "shipping": 0,
+    "total": 32800.0,
+    "customerCode": "1011"
+  },
+  {
+    "page": 115,
+    "date": "2026-10-26",
+    "number": "0002-00009145",
+    "customer": "ESTEBAN / GER",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 263,
+        "price": 4700.0,
+        "total": 1236100.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 139,
+        "price": 4700.0,
+        "total": 653300.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 1893400.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 116,
+    "date": "2026-10-27",
+    "number": "0002-00009146",
+    "customer": "EMILIANO BOTTEGA",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 20,
+        "price": 4900.0,
+        "total": 98000.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 29,
+        "price": 5400.0,
+        "total": 156600.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 20,
+        "price": 4900.0,
+        "total": 98000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 11,
+        "price": 5300.0,
+        "total": 58300.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 16,
+        "price": 5700.0,
+        "total": 91200.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 14,
+        "price": 5300.0,
+        "total": 74200.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 11,
+        "price": 5400.0,
+        "total": 59400.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 18,
+        "price": 5700.0,
+        "total": 102600.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 12,
+        "price": 5700.0,
+        "total": 68400.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 13,
+        "price": 10000.0,
+        "total": 130000.0
+      },
+      {
+        "name": "CARNE DULCE x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "CHOCLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "CEBOLLA x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 20,
+        "price": 10000.0,
+        "total": 200000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 1267300.0,
+    "customerCode": "1012"
+  },
+  {
+    "page": 118,
+    "date": "2026-10-27",
+    "number": "0002-00009148",
+    "customer": "SEBASTIAN SILANES",
+    "items": [
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 10,
+        "price": 6100.0,
+        "total": 61000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 61000.0,
+    "customerCode": "2201"
+  },
+  {
+    "page": 123,
+    "date": "2026-10-29",
+    "number": "0002-00009153",
+    "customer": "MELINA POLLISE",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 6,
+        "price": 4900.0,
+        "total": 29400.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 4,
+        "price": 4900.0,
+        "total": 19600.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 2,
+        "price": 5300.0,
+        "total": 10600.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      }
+    ],
+    "shipping": 0,
+    "total": 137800.0,
+    "customerCode": "1011"
+  },
+  {
+    "page": 125,
+    "date": "2026-10-29",
+    "number": "0002-00009155",
+    "customer": "CARLOS NADALIN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 4,
+        "price": 5300.0,
+        "total": 21200.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 6,
+        "price": 5800.0,
+        "total": 34800.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 6,
+        "price": 5300.0,
+        "total": 31800.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 4,
+        "price": 5300.0,
+        "total": 21200.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 4,
+        "price": 6300.0,
+        "total": 25200.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 3,
+        "price": 10000.0,
+        "total": 30000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 6u",
+        "qty": 1,
+        "price": 5500.0,
+        "total": 5500.0
+      },
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 1,
+        "price": 8200.0,
+        "total": 8200.0
+      }
+    ],
+    "shipping": 0,
+    "total": 260700.0,
+    "customerCode": "2259"
+  },
+  {
+    "page": 126,
+    "date": "2026-10-29",
+    "number": "0002-00009156",
+    "customer": "BERNARDINA JUAREZ",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 9,
+        "price": 5300.0,
+        "total": 47700.0
+      },
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 3,
+        "price": 5800.0,
+        "total": 17400.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 8,
+        "price": 5300.0,
+        "total": 42400.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 2,
+        "price": 6300.0,
+        "total": 12600.0
+      },
+      {
+        "name": "SALCHICHA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 1,
+        "price": 5800.0,
+        "total": 5800.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 1,
+        "price": 6300.0,
+        "total": 6300.0
+      },
+      {
+        "name": "BETEL",
+        "qty": 1,
+        "price": 6300.0,
+        "total": 6300.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      }
+    ],
+    "shipping": 0,
+    "total": 189800.0,
+    "customerCode": "2090"
+  },
+  {
+    "page": 127,
+    "date": "2026-10-29",
+    "number": "0002-00009157",
+    "customer": "CHRISTIAN SENGER",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 30,
+        "price": 5400.0,
+        "total": 162000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 20,
+        "price": 4900.0,
+        "total": 98000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 10,
+        "price": 4900.0,
+        "total": 49000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 496500.0,
+    "customerCode": "1016"
+  },
+  {
+    "page": 136,
+    "date": "2026-10-29",
+    "number": "0002-00009166",
+    "customer": "LUCIANO CONCILIO",
+    "items": [
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 6,
+        "price": 7500.0,
+        "total": 45000.0
+      },
+      {
+        "name": "FRANKFURT x 8u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 59000.0,
+    "customerCode": "4668"
+  },
+  {
+    "page": 137,
+    "date": "2026-10-29",
+    "number": "0002-00009167",
+    "customer": "BELEN",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 3,
+        "price": 8000.0,
+        "total": 24000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 8000.0,
+        "total": 16000.0
+      },
+      {
+        "name": "FUGAZZA",
+        "qty": 2,
+        "price": 8000.0,
+        "total": 16000.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 1,
+        "price": 8000.0,
+        "total": 8000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      },
+      {
+        "name": "CARNE SALADA x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      },
+      {
+        "name": "POLLO x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      },
+      {
+        "name": "VERDURA x 6u",
+        "qty": 1,
+        "price": 7500.0,
+        "total": 7500.0
+      }
+    ],
+    "shipping": 0,
+    "total": 94000.0,
+    "customerCode": "4999"
+  },
+  {
+    "page": 138,
+    "date": "2026-10-30",
+    "number": "0002-00009168",
+    "customer": "ANTONELLA TESURI",
+    "items": [
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 2,
+        "price": 6100.0,
+        "total": 12200.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 2,
+        "price": 6700.0,
+        "total": 13400.0
+      },
+      {
+        "name": "CHEDDAR",
+        "qty": 4,
+        "price": 6700.0,
+        "total": 26800.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 73800.0,
+    "customerCode": "2327"
+  },
+  {
+    "page": 142,
+    "date": "2026-10-30",
+    "number": "0002-00009172",
+    "customer": "NATALIA PAGNONE",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 8,
+        "price": 5700.0,
+        "total": 45600.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 7,
+        "price": 5700.0,
+        "total": 39900.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 145500.0,
+    "customerCode": "2095"
+  },
+  {
+    "page": 145,
+    "date": "2026-10-30",
+    "number": "0002-00009175",
+    "customer": "JOSE LUIS MANDARINI",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 1,
+        "price": 6200.0,
+        "total": 6200.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 1,
+        "price": 6100.0,
+        "total": 6100.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 6700.0,
+        "total": 6700.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 1,
+        "price": 10000.0,
+        "total": 10000.0
+      },
+      {
+        "name": "VERDURA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "CEBOLLA x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "ARABE x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 100400.0,
+    "customerCode": "2119"
+  },
+  {
+    "page": 146,
+    "date": "2026-10-30",
+    "number": "0002-00009176",
+    "customer": "GONZALO BLANCO",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 1,
+        "price": 5400.0,
+        "total": 5400.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      },
+      {
+        "name": "CALABRESA",
+        "qty": 1,
+        "price": 5300.0,
+        "total": 5300.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 1,
+        "price": 5700.0,
+        "total": 5700.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 0,
+    "total": 41700.0,
+    "customerCode": "1004"
+  },
+  {
+    "page": 147,
+    "date": "2026-10-30",
+    "number": "0002-00009177",
+    "customer": "RENATA VALENTI",
+    "items": [
+      {
+        "name": "MUZZARELLA",
+        "qty": 6,
+        "price": 5300.0,
+        "total": 31800.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 4,
+        "price": 5700.0,
+        "total": 22800.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 4,
+        "price": 5900.0,
+        "total": 23600.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 82200.0,
+    "customerCode": "2057"
+  },
+  {
+    "page": 149,
+    "date": "2026-10-30",
+    "number": "0002-00009179",
+    "customer": "SUPER GLORIA SRL",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 5,
+        "price": 5800.0,
+        "total": 29000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 5,
+        "price": 5300.0,
+        "total": 26500.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 5,
+        "price": 5700.0,
+        "total": 28500.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      },
+      {
+        "name": "INTEGRAL ESPECIAL",
+        "qty": 3,
+        "price": 5700.0,
+        "total": 17100.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 122200.0,
+    "customerCode": "2324"
+  },
+  {
+    "page": 150,
+    "date": "2026-10-30",
+    "number": "0002-00009180",
+    "customer": "ESTACION PUMA",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 10,
+        "price": 5800.0,
+        "total": 58000.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 10,
+        "price": 5300.0,
+        "total": 53000.0
+      },
+      {
+        "name": "CUATRO QUESOS",
+        "qty": 10,
+        "price": 6300.0,
+        "total": 63000.0
+      },
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      },
+      {
+        "name": "POLLO x 12u",
+        "qty": 2,
+        "price": 10000.0,
+        "total": 20000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 218000.0,
+    "customerCode": "3074"
+  },
+  {
+    "page": 151,
+    "date": "2026-10-30",
+    "number": "0002-00009181",
+    "customer": "CAROLINA GONZALEZ",
+    "items": [
+      {
+        "name": "JAMON Y QUESO x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      },
+      {
+        "name": "CARNE SALADA x 12u",
+        "qty": 4,
+        "price": 10000.0,
+        "total": 40000.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 84000.0,
+    "customerCode": "4689"
+  },
+  {
+    "page": 155,
+    "date": "2026-10-30",
+    "number": "0002-00009185",
+    "customer": "ENRIQUE",
+    "items": [
+      {
+        "name": "DOBLE MUZZARELLA",
+        "qty": 4,
+        "price": 5800.0,
+        "total": 23200.0
+      },
+      {
+        "name": "ESPECIAL",
+        "qty": 3,
+        "price": 5300.0,
+        "total": 15900.0
+      },
+      {
+        "name": "NAPOLITANA",
+        "qty": 2,
+        "price": 5700.0,
+        "total": 11400.0
+      },
+      {
+        "name": "FUGAFORT",
+        "qty": 2,
+        "price": 5800.0,
+        "total": 11600.0
+      },
+      {
+        "name": "INTEGRAL MUZZARELLA",
+        "qty": 1,
+        "price": 5700.0,
+        "total": 5700.0
+      }
+    ],
+    "shipping": 4000.0,
+    "total": 71800.0,
+    "customerCode": "2206"
+  }
+]
