@@ -407,6 +407,53 @@ app.post('/admin/suppliers', requireAdmin, requireClient, asyncRoute(async (req,
   res.redirect('/admin/masters');
 }));
 
+
+app.post('/admin/products/merge-stock', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const sourceId = Number(req.body.source_product_id);
+  const targetId = Number(req.body.target_product_id);
+  const db = await pool.connect();
+  try {
+    if (!sourceId || !targetId || sourceId === targetId) throw new Error('Seleccioná dos productos distintos.');
+    await db.query('BEGIN');
+    const products = await db.query(
+      'SELECT id,name,unit,active FROM products WHERE client_id=$1 AND id=ANY($2::bigint[]) FOR UPDATE',
+      [clientId, [sourceId, targetId]]
+    );
+    if (products.rowCount !== 2) throw new Error('Los dos productos deben pertenecer a la empresa activa.');
+    const source = products.rows.find(p => Number(p.id) === sourceId);
+    const target = products.rows.find(p => Number(p.id) === targetId);
+    if (!source.active || !target.active) throw new Error('Los dos productos deben estar activos.');
+    if (source.unit !== target.unit) throw new Error('Los productos deben tener la misma unidad para unir sus lotes.');
+    await db.query(
+      'INSERT INTO product_suppliers(client_id,product_id,supplier_id) SELECT client_id,$1,supplier_id FROM product_suppliers WHERE client_id=$2 AND product_id=$3 ON CONFLICT(product_id,supplier_id) DO NOTHING',
+      [targetId, clientId, sourceId]
+    );
+    await db.query('DELETE FROM product_suppliers WHERE client_id=$1 AND product_id=$2', [clientId, sourceId]);
+    await db.query('DELETE FROM recipe_items a USING recipe_items b WHERE a.recipe_id=b.recipe_id AND a.product_id=$1 AND b.product_id=$2', [sourceId, targetId]);
+    await db.query('UPDATE recipe_items SET product_id=$1 WHERE product_id=$2', [targetId, sourceId]);
+    await db.query('UPDATE recipes SET output_product_id=$1 WHERE client_id=$2 AND output_product_id=$3', [targetId, clientId, sourceId]);
+    await db.query('UPDATE receipts SET product_id=$1 WHERE client_id=$2 AND product_id=$3', [targetId, clientId, sourceId]);
+    await db.query('UPDATE batches SET product_id=$1 WHERE client_id=$2 AND product_id=$3', [targetId, clientId, sourceId]);
+    await db.query('UPDATE batch_inputs SET product_id=$1 WHERE product_id=$2 AND batch_id IN (SELECT id FROM batches WHERE client_id=$3)', [targetId, sourceId, clientId]);
+    await db.query('UPDATE products SET active=FALSE WHERE client_id=$1 AND id=$2', [clientId, sourceId]);
+    await db.query('COMMIT');
+    await audit(req.session.user.id, clientId, 'MERGE', 'product', targetId, {
+      source_product_id: sourceId,
+      source_name: source.name,
+      target_name: target.name,
+      moved_stock_and_lots: true
+    });
+    flash(req, 'ok', 'Stock, lotes y referencias unificados en "' + target.name + '".');
+  } catch (error) {
+    await db.query('ROLLBACK');
+    flash(req, 'error', error.message || 'No se pudo unir el stock y los lotes.');
+  } finally {
+    db.release();
+  }
+  res.redirect('/admin/masters');
+}));
+
 app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const client = await pool.connect();
