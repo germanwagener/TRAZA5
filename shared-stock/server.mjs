@@ -76,7 +76,7 @@ const server=http.createServer(async(req,res)=>{try{
   if(u.session_audit_mode){
   const auditCompanyId=u.role==='company'?u.company_id:u.session_audit_company_id,enabled=auditCompanyId&&db.prepare('SELECT audit_mode_enabled FROM companies WHERE id=?').get(auditCompanyId)?.audit_mode_enabled;
   if(!enabled){db.prepare('DELETE FROM sessions WHERE token=?').run(hashToken(token));return send(res,401,{error:'El Modo Auditoría fue desactivado.'},{'Set-Cookie':cookie('',0)})}
-  if(!['/api/me','/api/logout','/api/audit-mode/state','/api/document'].includes(path))return send(res,403,{error:'En Modo Auditoría solo se permiten consultas.'});
+  if(!['/api/me','/api/logout','/api/audit-mode/state','/api/audit-mode/trace','/api/document'].includes(path))return send(res,403,{error:'En Modo Auditoría solo se permiten consultas.'});
  }
  if(path==='/api/password'&&req.method==='POST'){
   const p=await body(req);if(u.role==='admin'&&(typeof p.newPassword!=='string'||p.newPassword.length<12))throw Error('La contraseña administrativa requiere al menos 12 caracteres.');if(!check(p.oldPassword,u.password))return send(res,400,{error:'La contraseña actual no coincide.'});const encoded=password(p.newPassword);tx(()=>{db.prepare('UPDATE users SET password=?,must_change=0 WHERE id=?').run(encoded,u.id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(u.id);log(u,'password_changed',{})});return send(res,200,{ok:true},{'Set-Cookie':cookie('',0)})
@@ -181,11 +181,32 @@ const server=http.createServer(async(req,res)=>{try{
    suppliers:fields(source.suppliers,['id','name','taxId','contact','phone','email','address','archived','documents']),
    customers:fields(source.customers,['id','name','code','taxId','contact','phone','email','address','archived']),
    recipes:fields(source.recipes,['id','itemId','secondaryItemId','version','yield','shelfLifeDays','components','archived']),
+   traceLots:source.lots.map(l=>{const purchase=source.purchases.find(p=>p.lotId===l.id),production=source.productions.find(p=>p.lotId===l.id);return{id:l.id,itemId:l.itemId,label:production?(l.code||'Lote de elaboración'):(purchase?.supplierLot||'Lote de proveedor sin registrar'),date:l.date,expiry:l.expiry||''}}),
+
    purchases:fields(source.purchases.filter(within),['date','supplierId','itemId','brand','supplierLot','expiry','receivedQty','receivedUnit','qty','note']),
    productions:fields(source.productions.filter(within),['date','itemId','trial','productionGroup','splitRole','recipe','expectedQty','qty','note'],true),
    sales:fields(source.sales.filter(within),['date','customerId','itemId','qty'],true)
   };
   return send(res,200,{state:data,from,to});
+ }
+ if(path==='/api/audit-mode/trace'&&req.method==='GET'){
+  if(!u.session_audit_mode)return send(res,403,{error:'Ingresá al Modo Auditoría desde Configuración.'});
+  const source=JSON.parse(company().state),lotId=url.searchParams.get('lot');
+  if(!lotId||!source.lots.some(x=>x.id===lotId))return send(res,404,{error:'No se encontró el lote seleccionado.'});
+  const result=trace(source,lotId),nodeById=new Map(result.nodes.map(n=>[n.id,n]));
+  const label=n=>n.source==='production'?(n.code||'Lote de elaboración'):(n.supplierLot||'Lote de proveedor sin registrar');
+  const publicNode=n=>({id:n.id,itemId:n.itemId,name:n.name,kind:n.kind,unit:n.unit,lotLabel:label(n),date:n.date,expiry:n.expiry,qty:n.qty,supplier:n.supplier,supplierLot:n.supplierLot,manufactured:n.manufactured,note:n.note,source:n.source,sector:n.sector});
+  const data={
+   root:publicNode(result.root),lotId:result.lotId,ancestors:result.ancestors,descendants:result.descendants,
+   nodes:result.nodes.map(publicNode),
+   consumptions:result.consumptions.map(x=>({...publicNode(x),parentLotId:x.parentLotId,parentName:x.parentName,parentLotLabel:label(nodeById.get(x.parentLotId)||{source:'unknown'}),lotId:x.lotId,qty:x.qty,productionDate:x.productionDate})),
+   productions:result.productions.map(p=>({lotId:p.lotId,date:p.date,itemId:p.itemId,untrackedInputs:(p.untrackedInputs||[]).map(x=>({itemId:x.itemId,qty:x.qty,unit:x.unit}))})),
+   dispatches:result.dispatches.map(x=>({date:x.date,customer:x.customer,contact:x.contact,phone:x.phone,itemId:x.itemId,lotLabel:label(nodeById.get(x.lotId)||{source:'unknown'}),qty:x.qty,unit:x.unit})),
+   losses:result.losses.map(x=>({date:x.date,itemId:x.itemId,lotLabel:label(nodeById.get(x.lotId)||{source:'unknown'}),qty:x.qty,reason:x.reason})),
+   transfers:result.transfers.map(x=>({date:x.date,from:x.from,to:x.to,qty:x.qty,lotLabel:label(nodeById.get(x.lotId)||{source:'unknown'})})),
+   dispatchedQty:result.dispatchedQty
+  };
+  return send(res,200,data);
  }
  if(path==='/api/document'&&req.method==='GET'){
   const s=JSON.parse(company().state),collection=url.searchParams.get('collection');
