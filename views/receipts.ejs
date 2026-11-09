@@ -57,7 +57,7 @@
     </div>
     <div class="tablewrap">
       <table id="receiptsTable">
-        <thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto</th><th>Marca</th><th>Lote prov.</th><th>Lote interno</th><th>Cant.</th><th>Venc.</th><th>Usuario</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto</th><th>Marca</th><th>Lote prov.</th><th>Lote interno</th><th>Cant.</th><th>Venc.</th><th>Usuario</th><% if(user.role==='admin'||user.role==='superadmin'){ %><th>Acciones</th><% } %></tr></thead>
         <tbody>
           <% rows.forEach(r=>{ %>
             <tr>
@@ -69,7 +69,7 @@
               <td><code><%= r.internal_lot %></code></td>
               <td><%= r.qty %> <%= r.unit %></td>
               <td><%= r.expires_at?(r.expires_at.toISOString?r.expires_at.toISOString().slice(0,10):r.expires_at):'' %></td>
-              <td><%= r.username %></td>
+              <td><%= r.username %></td><% if(user.role==='admin'||user.role==='superadmin'){ %><td><form method="post" action="/admin/receipts/<%= r.id %>/delete" onsubmit="return confirm(&quot;¿Eliminar este ingreso? Solo se permite si no fue usado en producción.&quot;)"><button class="small secondary">Eliminar</button></form></td><% } %>
             </tr>
           <% }) %>
         </tbody>
