@@ -70,6 +70,7 @@
               <input type="number" name="position" value="<%= s.position %>" min="1" class="short">
               <button class="small">Guardar</button>
             </form>
+            <% if(s.name.toLowerCase()!=='inspección'){ %><form method="post" action="/admin/sectors/<%= s.id %>/delete" onsubmit="return confirm(&quot;¿Eliminar este sector?&quot;)"><button class="small secondary">Eliminar</button></form><% } %>
             <form method="post" action="/admin/sectors/<%= s.id %>/toggle">
               <button class="small secondary"><%= s.active?'Desactivar':'Activar' %></button>
             </form>
