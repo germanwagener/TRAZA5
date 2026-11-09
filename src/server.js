@@ -155,6 +155,13 @@ async function seedAdmin() {
   }
 }
 
+async function ensureInspectionSectors() {
+  const clients = await pool.query('SELECT id FROM clients WHERE active=TRUE');
+  for (const row of clients.rows) {
+    await pool.query("INSERT INTO sectors(client_id,name,position) SELECT $1,'Inspección',COALESCE(MAX(position),0)+1 FROM sectors WHERE client_id=$1 AND NOT EXISTS (SELECT 1 FROM sectors WHERE client_id=$1 AND lower(name)=lower('Inspección'))",[row.id]);
+  }
+}
+
 app.get('/login', (req, res) => res.render('login'));
 
 app.post('/login', asyncRoute(async (req, res) => {
@@ -452,6 +459,26 @@ app.post('/admin/products/merge-stock', requireAdmin, requireClient, asyncRoute(
     db.release();
   }
   res.redirect('/admin/masters');
+}));
+
+
+app.post('/admin/suppliers/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
+  const clientId=currentClientId(req);
+  const r=await pool.query('UPDATE suppliers SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','supplier',r.rows[0].id,{}); flash(req,'ok','Proveedor eliminado.'); }
+  res.redirect('/admin/masters');
+}));
+app.post('/admin/products/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
+  const clientId=currentClientId(req);
+  const r=await pool.query('UPDATE products SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','product',r.rows[0].id,{}); flash(req,'ok','Producto eliminado.'); }
+  res.redirect('/admin/masters');
+}));
+app.post('/admin/recipes/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
+  const clientId=currentClientId(req);
+  const r=await pool.query('UPDATE recipes SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','recipe',r.rows[0].id,{}); flash(req,'ok','Receta eliminada.'); }
+  res.redirect('/admin/recipes');
 }));
 
 app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, res) => {
@@ -968,6 +995,7 @@ async function initializeDatabase(attempts = 12) {
     try {
       await initDb();
       await seedAdmin();
+      await ensureInspectionSectors();
       return;
     } catch (error) {
       lastError = error;
