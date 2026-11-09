@@ -295,6 +295,21 @@ app.post('/admin/clients/:id/toggle', requireSuperAdmin, asyncRoute(async (req, 
   res.redirect('/admin/clients');
 }));
 
+
+app.post('/admin/clients/:id/delete', requireSuperAdmin, asyncRoute(async (req,res) => {
+ const id=Number(req.params.id);
+ const r=await pool.query('SELECT id,name FROM clients WHERE id=$1',[id]);
+ if(!r.rows[0]) { flash(req,'error','Empresa no encontrada.'); return res.redirect('/admin/clients'); }
+ if(Number(req.session.activeClientId)===id) { flash(req,'error','Elegí otra empresa antes de eliminar la activa.'); return res.redirect('/admin/clients'); }
+ const usage=await pool.query('SELECT (SELECT COUNT(*) FROM receipts WHERE client_id=$1)+(SELECT COUNT(*) FROM batches WHERE client_id=$1)+(SELECT COUNT(*) FROM users WHERE client_id=$1) n',[id]);
+ if(Number(usage.rows[0].n)>0) { flash(req,'error','La empresa tiene registros asociados. Desactivala; para reorganizar sus datos, pedime el traslado.'); return res.redirect('/admin/clients'); }
+ await pool.query('DELETE FROM sectors WHERE client_id=$1',[id]);
+ await pool.query('DELETE FROM clients WHERE id=$1',[id]);
+ await audit(req.session.user.id,null,'DELETE','client',id,{name:r.rows[0].name});
+ flash(req,'ok','Empresa eliminada.');
+ res.redirect('/admin/clients');
+}));
+
 app.post('/admin/client-context', requireSuperAdmin, asyncRoute(async (req, res) => {
   const result = await pool.query('SELECT id FROM clients WHERE id=$1 AND active=TRUE', [req.body.client_id]);
   if (result.rows[0]) req.session.activeClientId = result.rows[0].id;
@@ -463,21 +478,28 @@ app.post('/admin/products/merge-stock', requireAdmin, requireClient, asyncRoute(
 
 
 app.post('/admin/suppliers/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
-  const clientId=currentClientId(req);
-  const r=await pool.query('UPDATE suppliers SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
-  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','supplier',r.rows[0].id,{}); flash(req,'ok','Proveedor eliminado.'); }
+  const clientId=currentClientId(req), id=Number(req.params.id);
+  const used=await pool.query('SELECT (SELECT COUNT(*) FROM receipts WHERE supplier_id=$1 AND client_id=$2)+(SELECT COUNT(*) FROM product_suppliers WHERE supplier_id=$1 AND client_id=$2) n',[id,clientId]);
+  if(Number(used.rows[0].n)>0){ flash(req,'error','El proveedor tiene ingresos o productos asociados; no se puede borrar sin alterar la trazabilidad.'); return res.redirect('/admin/masters'); }
+  const r=await pool.query('DELETE FROM suppliers WHERE id=$1 AND client_id=$2 RETURNING id',[id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','supplier',id,{}); flash(req,'ok','Proveedor eliminado.'); }
   res.redirect('/admin/masters');
 }));
 app.post('/admin/products/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
-  const clientId=currentClientId(req);
-  const r=await pool.query('UPDATE products SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
-  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','product',r.rows[0].id,{}); flash(req,'ok','Producto eliminado.'); }
+  const clientId=currentClientId(req), id=Number(req.params.id);
+  const used=await pool.query('SELECT (SELECT COUNT(*) FROM receipts WHERE product_id=$1 AND client_id=$2)+(SELECT COUNT(*) FROM batches WHERE product_id=$1 AND client_id=$2)+(SELECT COUNT(*) FROM recipes WHERE output_product_id=$1 AND client_id=$2)+(SELECT COUNT(*) FROM recipe_items ri JOIN recipes r ON r.id=ri.recipe_id WHERE ri.product_id=$1 AND r.client_id=$2) n',[id,clientId]);
+  if(Number(used.rows[0].n)>0){ flash(req,'error','El producto tiene recetas, ingresos o lotes asociados; usá “Unir stock y lotes” para consolidarlo sin perder trazabilidad.'); return res.redirect('/admin/masters'); }
+  await pool.query('DELETE FROM product_suppliers WHERE product_id=$1 AND client_id=$2',[id,clientId]);
+  const r=await pool.query('DELETE FROM products WHERE id=$1 AND client_id=$2 RETURNING id',[id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','product',id,{}); flash(req,'ok','Producto eliminado.'); }
   res.redirect('/admin/masters');
 }));
 app.post('/admin/recipes/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
-  const clientId=currentClientId(req);
-  const r=await pool.query('UPDATE recipes SET active=FALSE WHERE id=$1 AND client_id=$2 RETURNING id',[req.params.id,clientId]);
-  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','recipe',r.rows[0].id,{}); flash(req,'ok','Receta eliminada.'); }
+  const clientId=currentClientId(req), id=Number(req.params.id);
+  const used=await pool.query('SELECT COUNT(*) n FROM batches WHERE recipe_id=$1 AND client_id=$2',[id,clientId]);
+  if(Number(used.rows[0].n)>0){ flash(req,'error','La receta tiene elaboraciones asociadas; desactivala para conservar la trazabilidad.'); return res.redirect('/admin/recipes'); }
+  const r=await pool.query('DELETE FROM recipes WHERE id=$1 AND client_id=$2 RETURNING id',[id,clientId]);
+  if(r.rows[0]) { await audit(req.session.user.id,clientId,'DELETE','recipe',id,{}); flash(req,'ok','Receta eliminada.'); }
   res.redirect('/admin/recipes');
 }));
 
@@ -628,6 +650,20 @@ app.post('/admin/sectors/:id/toggle', requireAdmin, requireClient, asyncRoute(as
   res.redirect('/admin/masters');
 }));
 
+
+app.post('/admin/sectors/:id/delete', requireAdmin, requireClient, asyncRoute(async (req,res) => {
+ const clientId=currentClientId(req), id=Number(req.params.id);
+ const r=await pool.query('SELECT name FROM sectors WHERE id=$1 AND client_id=$2',[id,clientId]);
+ if(!r.rows[0]) { flash(req,'error','Sector no encontrado.'); return res.redirect('/admin/masters'); }
+ if(String(r.rows[0].name).toLowerCase()==='inspección') { flash(req,'error','El sector Inspección se conserva en Configuración.'); return res.redirect('/admin/masters'); }
+ const usage=await pool.query('SELECT (SELECT COUNT(*) FROM batches WHERE sector_id=$1)+(SELECT COUNT(*) FROM recipes WHERE sector_id=$1) n',[id]);
+ if(Number(usage.rows[0].n)>0) { flash(req,'error','El sector tiene lotes asociados. Desactivalo para conservar la trazabilidad.'); return res.redirect('/admin/masters'); }
+ await pool.query('DELETE FROM sectors WHERE id=$1 AND client_id=$2',[id,clientId]);
+ await audit(req.session.user.id,clientId,'DELETE','sector',id,{name:r.rows[0].name});
+ flash(req,'ok','Sector eliminado.');
+ res.redirect('/admin/masters');
+}));
+
 app.get('/admin/recipes', requireAdmin, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const [products, recipes] = await Promise.all([
@@ -721,6 +757,16 @@ app.get('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) => 
     )
   ]);
   res.render('receipts', { suppliers: suppliers.rows, products: products.rows, rows: rows.rows });
+}));
+
+
+app.post('/admin/receipts/:id/delete', requireAdmin, requireClient, asyncRoute(async(req,res)=>{
+ const clientId=currentClientId(req), id=Number(req.params.id);
+ const c=await pool.query('SELECT COUNT(*) n FROM batch_inputs bi JOIN batches b ON b.id=bi.batch_id WHERE bi.source_type=\'receipt\' AND bi.source_id=$1 AND b.client_id=$2',[id,clientId]);
+ if(Number(c.rows[0].n)>0){ flash(req,'error','Este ingreso ya fue usado en producción; no se puede borrar sin perder trazabilidad.'); return res.redirect('/receipts');}
+ const r=await pool.query('DELETE FROM receipts WHERE id=$1 AND client_id=$2 RETURNING id,internal_lot',[id,clientId]);
+ if(r.rows[0]){ await audit(req.session.user.id,clientId,'DELETE','receipt',id,{internal_lot:r.rows[0].internal_lot}); flash(req,'ok','Ingreso y lote eliminados.');}
+ res.redirect('/receipts');
 }));
 
 app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) => {
@@ -959,6 +1005,26 @@ app.post('/admin/batches/:id/status', requireAdmin, requireClient, asyncRoute(as
     flash(req, 'ok', 'Estado del lote actualizado.');
   }
   res.redirect('/stock');
+}));
+
+
+app.post('/admin/batches/:id/delete', requireAdmin, requireClient, asyncRoute(async(req,res)=>{
+ const clientId=currentClientId(req), id=Number(req.params.id);
+ const conn=await pool.connect();
+ try {
+  await conn.query('BEGIN');
+  const batch=(await conn.query('SELECT id,internal_lot,final_lot FROM batches WHERE id=$1 AND client_id=$2 FOR UPDATE',[id,clientId])).rows[0];
+  if(!batch) throw new Error('Lote no encontrado.');
+  const downstream=await conn.query("SELECT COUNT(*) n FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=$1 AND consumer.client_id=$2",[id,clientId]);
+  if(Number(downstream.rows[0].n)>0) throw new Error('Este lote ya se usó en otra producción; no se puede borrar sin cortar la trazabilidad.');
+  await conn.query('DELETE FROM batch_inputs WHERE batch_id=$1',[id]);
+  await conn.query('DELETE FROM batches WHERE id=$1 AND client_id=$2',[id,clientId]);
+  await conn.query('COMMIT');
+  await audit(req.session.user.id,clientId,'DELETE','batch',id,{internal_lot:batch.internal_lot,final_lot:batch.final_lot});
+  flash(req,'ok','Producción y lote eliminados.');
+ } catch(error) { await conn.query('ROLLBACK'); flash(req,'error',error.message||'No se pudo eliminar el lote.');}
+ finally {conn.release();}
+ res.redirect('/stock');
 }));
 
 app.get('/reports', requireAuth, requireClient, asyncRoute(async (req, res) => {
