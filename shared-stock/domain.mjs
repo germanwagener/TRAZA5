@@ -81,7 +81,14 @@ export function operate(s,op,p){let result={};
 	   Object.assign(fields,{kind:p.kind,unit:p.unit,brand:String(p.brand||''),rnpa:String(p.rnpa||''),presentationName,presentationContent,presentationContentUnit,resale:p.kind==='product'?!!p.resale:false,salePrice:row.salePrice??0,wholesalePrice:row.wholesalePrice??0,supplierId:p.supplierId||''});if(fields.supplierId)active(s.suppliers,fields.supplierId); fields.supplierIds=[...new Set(p.supplierIds??(fields.supplierId?[fields.supplierId]:[]))]; for(const sid of fields.supplierIds)active(s.suppliers,sid); fields.supplierId=fields.supplierIds[0]||''
   }
   Object.assign(row,fields);if(!p.id)s[p.collection].push(row);result=row;
- }else if(op==='recipe'){
+ }else if(op==='deleteUnlinkedItem'){
+  const row=get(s.items,p.itemId);
+  if(!['product','subproduct'].includes(row.kind)||row.resale)fail('Solo se pueden eliminar productos o subproductos sin receta.');
+  const hasReference=value=>{if(Array.isArray(value))return value.some(hasReference);if(!value||typeof value!=='object')return false;return Object.entries(value).some(([key,child])=>((key==='itemId'||key==='secondaryItemId')&&sameId(child,row.id))||hasReference(child))};
+  if(Object.entries(s).some(([key,value])=>key!=='items'&&hasReference(value)))fail('No se puede eliminar: el registro tiene lotes, recetas, movimientos u otros vínculos asociados.');
+  s.items=s.items.filter(x=>!sameId(x.id,row.id));if(s.averages)delete s.averages[row.id];
+  result={id:row.id,itemId:row.id,name:row.name,kind:row.kind};
+}else if(op==='recipe'){
   if(!p.itemId){
    const name=txt(p.name,'Nombre de receta');if(s.items.some(i=>i.name.trim().toLocaleLowerCase()===name.toLocaleLowerCase()))fail('Ya existe un registro con ese nombre. Editá su receta o elegí otro nombre.');
    const created=operate(s,'master',{collection:'items',name,kind:p.kind,unit:p.unit||'u',rnpa:p.rnpa,resale:false});p={...p,itemId:created.id};
