@@ -93,15 +93,15 @@
   <div class="split">
     <section class="card">
       <div class="tablehead">
-        <h2>Proveedores</h2>
+        <h2>Proveedores</h2><p class="muted tiny">El sector <b>Inspección</b> se crea automáticamente para esta empresa.</p>
         <input class="filter" data-table="suppliersTable" placeholder="Filtrar proveedores...">
       </div>
       <div class="tablewrap">
         <table id="suppliersTable">
-          <thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th></tr></thead>
+          <thead><tr><th>Proveedor</th><th>CUIT</th><th>Contacto</th><th>Acciones</th></tr></thead>
           <tbody>
             <% suppliers.forEach(s=>{ %>
-              <tr><td><b><%= s.name %></b></td><td><%= s.tax_id %></td><td><%= s.contact %></td></tr>
+              <tr><td><b><%= s.name %></b></td><td><%= s.tax_id %></td><td><%= s.contact %></td><td><form method="post" action="/admin/suppliers/<%= s.id %>/delete" onsubmit="return confirm(&quot;¿Eliminar este proveedor?&quot;)"><button class="small secondary">Eliminar</button></form></td></tr>
             <% }) %>
           </tbody>
         </table>
@@ -115,7 +115,7 @@
       </div>
       <div class="tablewrap">
         <table id="productsTable">
-          <thead><tr><th>Código</th><th>Producto</th><th>Proveedor/es</th><th>Tipo</th><th>Unidad</th><th>Vida útil</th></tr></thead>
+          <thead><tr><th>Código</th><th>Producto</th><th>Proveedor/es</th><th>Tipo</th><th>Unidad</th><th>Vida útil</th><th>Acciones</th></tr></thead>
           <tbody>
             <% products.forEach(p=>{ %>
               <tr>
@@ -139,7 +139,7 @@
                 </td>
                 <td><%= p.category %></td>
                 <td><%= p.unit %></td>
-                <td><%= p.shelf_life_days %> días</td>
+                <td><%= p.shelf_life_days %> días</td><td><form method="post" action="/admin/products/<%= p.id %>/delete" onsubmit="return confirm(&quot;¿Eliminar este producto?&quot;)"><button class="small secondary">Eliminar</button></form></td>
               </tr>
             <% }) %>
           </tbody>
