@@ -21,9 +21,10 @@
       <a href="/admin/masters">Maestros</a>
       <a href="/admin/recipes">Recetas</a>
       <a href="/admin/users">Usuarios</a>
-      <a href="/audit">Auditoría</a>
+      
     <% } %>
-    <a href="/account/password">Contraseña</a>
+    <a href="/account/password">Cambiar contraseña</a>
+    <% if(user.role==='superadmin' || user.role==='admin'){ %><a href="/audit">Auditoría</a><% } %>
     <form method="post" action="/logout" class="inline"><button class="navbtn">Salir</button></form>
   </nav>
   <div class="session-context">
