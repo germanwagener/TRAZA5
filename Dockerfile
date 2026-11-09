@@ -7,7 +7,7 @@ COPY admin-delete.tar.gz.b64 /tmp/admin-delete.tar.gz.b64
 RUN base64 -d /tmp/admin-delete.tar.gz.b64 | tar -xzf - -C /app && rm -f /tmp/admin-delete.tar.gz.b64
 COPY shared-stock/ /app/gestion-integrada/
 WORKDIR /app/gestion-integrada
-RUN node -e "const fs=require('fs');const html='public/index.html';let page=fs.readFileSync(html,'utf8');page=page.replace('audit-20261109-1','audit-20261109-3');fs.writeFileSync(html,page);"
+RUN node -e "const fs=require('fs');const html='public/index.html';let page=fs.readFileSync(html,'utf8');page=page.replace('audit-20261109-1','audit-20261109-4');fs.writeFileSync(html,page);"
 RUN npm install --no-save --ignore-scripts --omit=optional --package-lock=false pdfjs-dist@6.4.299
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
