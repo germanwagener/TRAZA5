@@ -57,6 +57,7 @@
                         <button class="small">Abrir empresa</button>
                       </form>
                     <% } %>
+                    <form method="post" action="/admin/clients/<%= r.id %>/delete" onsubmit="return confirm(&quot;¿Eliminar definitivamente esta empresa y sus datos?&quot;)"><button class="small secondary">Eliminar</button></form>
                     <form method="post" action="/admin/clients/<%= r.id %>/toggle">
                       <button class="small secondary"><%= r.active?'Desactivar':'Activar' %></button>
                     </form>
