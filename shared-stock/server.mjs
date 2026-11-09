@@ -25,6 +25,9 @@ const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA forei
  CREATE TABLE IF NOT EXISTS attempts(key TEXT PRIMARY KEY,count INTEGER NOT NULL,until INTEGER NOT NULL);
  CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
  CREATE INDEX IF NOT EXISTS audit_company ON audit(company_id,at);`);
+if(!db.prepare('PRAGMA table_info(companies)').all().some(x=>x.name==='audit_mode_enabled'))db.exec('ALTER TABLE companies ADD COLUMN audit_mode_enabled INTEGER NOT NULL DEFAULT 0');
+if(!db.prepare('PRAGMA table_info(sessions)').all().some(x=>x.name==='audit_mode'))db.exec('ALTER TABLE sessions ADD COLUMN audit_mode INTEGER NOT NULL DEFAULT 0');
+if(!db.prepare('PRAGMA table_info(sessions)').all().some(x=>x.name==='audit_company_id'))db.exec('ALTER TABLE sessions ADD COLUMN audit_company_id TEXT');
 const hashToken=x=>createHash('sha256').update(x).digest('hex');
 function password(p){if(typeof p!=='string'||p.length<4||p.length>128)throw Error('La contraseña debe tener entre 4 y 128 caracteres.');const salt=randomBytes(16).toString('hex');return salt+':'+scryptSync(p,salt,64).toString('hex')}
 function check(p,encoded){if(typeof p!=='string'||p.length>128||! /^[a-f0-9]{32}:[a-f0-9]{128}$/.test(encoded||''))return false;const [salt,h]=encoded.split(':');return timingSafeEqual(scryptSync(p,salt,64),Buffer.from(h,'hex'))}
@@ -63,17 +66,40 @@ const server=http.createServer(async(req,res)=>{try{
  if(path==='/api/login'&&req.method==='POST'){
   const p=await body(req),username=String(p.username||'').trim().toLowerCase();const key=hashToken(username),attempt=db.prepare('SELECT * FROM attempts WHERE key=?').get(key),now=Date.now();if(attempt&&attempt.until>now&&attempt.count>=8)return send(res,429,{error:'Demasiados intentos. Esperá 15 minutos.'});
   const u=db.prepare('SELECT * FROM users WHERE username=?').get(username);const dummy='f'.repeat(32)+':'+ '0'.repeat(128);const valid=check(p.password,u?.password||dummy);if(!u||!valid||u.blocked){const count=attempt&&attempt.until>now?attempt.count+1:1;db.prepare('INSERT OR REPLACE INTO attempts VALUES(?,?,?)').run(key,count,now+15*60*1000);return send(res,401,{error:'Usuario o contraseña incorrectos, o cuenta bloqueada.'})}
-  db.prepare('DELETE FROM attempts WHERE key=?').run(key);db.prepare('DELETE FROM sessions WHERE expires<?').run(now);const {remembered,age,expires}=sessionPolicy(u,p.remember,now);const t=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hashToken(t),u.id,expires);log(u,'login',{remembered});return send(res,200,{user:publicUser(u)},{'Set-Cookie':cookie(t,age)})
+  db.prepare('DELETE FROM attempts WHERE key=?').run(key);db.prepare('DELETE FROM sessions WHERE expires<?').run(now);const {remembered,age,expires}=sessionPolicy(u,p.remember,now);const t=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions(token,user_id,expires,audit_mode) VALUES(?,?,?,0)').run(hashToken(t),u.id,expires);log(u,'login',{remembered});return send(res,200,{user:publicUser(u)},{'Set-Cookie':cookie(t,age)})
  }
  const token=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('gestion_session='))?.slice(16)||'';
- const u=db.prepare('SELECT u.*,s.expires session_expires FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>? AND u.blocked=0').get(hashToken(token),Date.now());if(!u)return send(res,401,{error:'Iniciá sesión.'});if(u.username==='juni'&&u.session_expires===Number.MAX_SAFE_INTEGER)res.setHeader('Set-Cookie',cookie(token,2147483647));
+ const u=db.prepare('SELECT u.*,s.expires session_expires,s.audit_mode session_audit_mode,s.audit_company_id session_audit_company_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>? AND u.blocked=0').get(hashToken(token),Date.now());if(!u)return send(res,401,{error:'Iniciá sesión.'});if(u.username==='juni'&&u.session_expires===Number.MAX_SAFE_INTEGER)res.setHeader('Set-Cookie',cookie(token,2147483647));
  if(u.username==='juni'){const selected=url.searchParams.get('companyId'),target=selected?db.prepare('SELECT id FROM companies WHERE id=?').get(selected):null;log({...u,company_id:target?.id||null},'admin_request',{method:req.method,path});}
- if(path==='/api/me')return send(res,200,{user:publicUser(u)});
+ if(path==='/api/me')return send(res,200,{user:{...publicUser(u),auditMode:!!u.session_audit_mode,auditCompanyId:u.session_audit_company_id||null}});
  if(path==='/api/logout'&&req.method==='POST'){db.prepare('DELETE FROM sessions WHERE token=?').run(hashToken(token));return send(res,200,{ok:true},{'Set-Cookie':cookie('',0)})}
+  if(u.session_audit_mode){
+  const auditCompanyId=u.role==='company'?u.company_id:u.session_audit_company_id,enabled=auditCompanyId&&db.prepare('SELECT audit_mode_enabled FROM companies WHERE id=?').get(auditCompanyId)?.audit_mode_enabled;
+  if(!enabled){db.prepare('DELETE FROM sessions WHERE token=?').run(hashToken(token));return send(res,401,{error:'El Modo Auditoría fue desactivado.'},{'Set-Cookie':cookie('',0)})}
+  if(!['/api/me','/api/logout','/api/audit-mode/state','/api/document'].includes(path))return send(res,403,{error:'En Modo Auditoría solo se permiten consultas.'});
+ }
  if(path==='/api/password'&&req.method==='POST'){
   const p=await body(req);if(u.role==='admin'&&(typeof p.newPassword!=='string'||p.newPassword.length<12))throw Error('La contraseña administrativa requiere al menos 12 caracteres.');if(!check(p.oldPassword,u.password))return send(res,400,{error:'La contraseña actual no coincide.'});const encoded=password(p.newPassword);tx(()=>{db.prepare('UPDATE users SET password=?,must_change=0 WHERE id=?').run(encoded,u.id);db.prepare('DELETE FROM sessions WHERE user_id=?').run(u.id);log(u,'password_changed',{})});return send(res,200,{ok:true},{'Set-Cookie':cookie('',0)})
  }
  if(u.must_change)return send(res,403,{error:'Primero cambiá tu contraseña inicial.'});
+  if(path==='/api/audit-mode/config'&&req.method==='GET'){
+  if(u.role!=='company'&&!(u.role==='admin'&&url.searchParams.get('companyId')))return send(res,403,{error:'Seleccioná una empresa cliente.'});
+  const companyId=u.role==='company'?u.company_id:url.searchParams.get('companyId'),c=db.prepare('SELECT id,audit_mode_enabled FROM companies WHERE id=?').get(companyId);if(!c)return send(res,404,{error:'Empresa inexistente.'});
+  return send(res,200,{enabled:!!c.audit_mode_enabled});
+ }
+ if(path==='/api/audit-mode/config'&&req.method==='POST'){
+  if(u.role!=='company'&&!(u.role==='admin'&&url.searchParams.get('companyId')))return send(res,403,{error:'Seleccioná una empresa cliente.'});
+  const companyId=u.role==='company'?u.company_id:url.searchParams.get('companyId'),p=await body(req),enabled=p.enabled===true,c=db.prepare('SELECT id FROM companies WHERE id=?').get(companyId);if(!c)return send(res,404,{error:'Empresa inexistente.'});
+  db.prepare('UPDATE companies SET audit_mode_enabled=? WHERE id=?').run(enabled?1:0,companyId);log({...u,company_id:companyId},'audit_mode_configured',{enabled});
+  return send(res,200,{enabled});
+ }
+ if(path==='/api/audit-mode/enter'&&req.method==='POST'){
+  if(u.role!=='company'&&!(u.role==='admin'&&url.searchParams.get('companyId')))return send(res,403,{error:'Seleccioná una empresa cliente.'});
+  const companyId=u.role==='company'?u.company_id:url.searchParams.get('companyId'),c=db.prepare('SELECT audit_mode_enabled FROM companies WHERE id=?').get(companyId);
+  if(!c||!c.audit_mode_enabled)return send(res,403,{error:'El Modo Auditoría no está habilitado para esta empresa.'});
+  db.prepare('UPDATE sessions SET audit_mode=1,audit_company_id=? WHERE token=?').run(companyId,hashToken(token));log({...u,company_id:companyId},'audit_mode_entered',{});
+  return send(res,200,{user:{...publicUser(u),auditMode:true,auditCompanyId:companyId}});
+ }
  if(path==='/api/admin/drive'&&u.role==='admin'&&req.method==='POST'){
   const p=await body(req);if(p.op==='connect')return send(res,200,{url:drive.start(u.id)});
   if(p.op==='sync'){await drive.sync();return send(res,200,drive.status())}
@@ -116,7 +142,7 @@ const server=http.createServer(async(req,res)=>{try{
    if(p.op==='restoreCompany'){
     const deleted=db.prepare('SELECT * FROM deleted_companies WHERE id=?').get(p.companyId);if(!deleted)throw Error('Empresa eliminada inexistente.');const {company,users}=JSON.parse(deleted.payload);
     if(users.some(x=>db.prepare('SELECT id FROM users WHERE username=?').get(x.username)))throw Error('Uno de los usuarios ya existe. Resolvé ese nombre antes de recuperar la empresa.');
-    db.prepare('INSERT INTO companies VALUES(?,?,?,?)').run(company.id,company.name,company.state,company.version+1);
+    db.prepare('INSERT INTO companies(id,name,state,version,audit_mode_enabled) VALUES(?,?,?,?,?)').run(company.id,company.name,company.state,company.version+1,company.audit_mode_enabled||0);
     for(const x of users)db.prepare('INSERT INTO users VALUES(?,?,?,?,?,?,?)').run(x.id,x.username,x.password,x.role,x.company_id,x.blocked,x.must_change);
     db.prepare('DELETE FROM deleted_companies WHERE id=?').run(company.id);log(u,'company_restored',{companyId:company.id,name:company.name});return{ok:true};
    }
@@ -128,7 +154,7 @@ const server=http.createServer(async(req,res)=>{try{
   if(req.method==='GET'){const s=JSON.parse(c.state);return send(res,200,{company:{id:c.id,name:c.name},lots:s.lots.map(l=>({id:l.id,code:l.code,itemId:l.itemId,itemName:s.items.find(i=>i.id===l.itemId)?.name||'Artículo eliminado',unit:s.items.find(i=>i.id===l.itemId)?.unit||'',remaining:l.remaining,status:l.status,expiry:l.expiry||'',date:l.date}))});}
   const p=await body(req);const result=tx(()=>{const current=db.prepare('SELECT * FROM companies WHERE id=?').get(companyId),s=JSON.parse(current.state),adjustment=adjustStock(s,p);db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),companyId);log(u,'stock_adjusted',{companyId,...adjustment});return adjustment});return send(res,200,{result});
  }
- const adminCompanyId=u.role==='admin'?url.searchParams.get('companyId'):null;
+ const adminCompanyId=u.role==='admin'?(u.session_audit_mode?u.session_audit_company_id:url.searchParams.get('companyId')):null;
  if(path==='/api/admin/correct'){
   if(u.role!=='admin')return send(res,403,{error:'Solo el administrador puede corregir datos.'});
   if(req.method!=='POST')return send(res,405,{error:'Método no permitido.'});
@@ -142,11 +168,30 @@ const server=http.createServer(async(req,res)=>{try{
  const selectedCompanyId=u.role==='admin'?adminCompanyId:u.company_id;
  const company=()=>{const c=db.prepare('SELECT * FROM companies WHERE id=?').get(selectedCompanyId);if(!c)throw Error('Empresa inexistente.');return c};
 
+  if(path==='/api/audit-mode/state'&&req.method==='GET'){
+  if(!u.session_audit_mode)return send(res,403,{error:'Ingresá al Modo Auditoría desde Configuración.'});
+  const c=company(),source=JSON.parse(c.state),from=url.searchParams.get('from')||'',to=url.searchParams.get('to')||'';
+  const validDate=x=>!x||/^\d{4}-\d{2}-\d{2}$/.test(x);if(!validDate(from)||!validDate(to)||from&&to&&from>to)return send(res,400,{error:'Rango de fechas inválido.'});
+  const within=x=>!!x?.date&&(!from||x.date>=from)&&(!to||x.date<=to);
+  const safe=(value,denyLot=false)=>{if(Array.isArray(value))return value.map(x=>safe(x,denyLot));if(!value||typeof value!=='object')return value;const out={};for(const [k,v] of Object.entries(value)){if(k==='data'||/(?:price|cost|margin|profit|revenue|discount|expense|income|cogs|average|assigned)$/i.test(k)||denyLot&&['lotId','inputs','delivery','sectorId'].includes(k))continue;out[k]=safe(v,denyLot)}return out};
+  const fields=(rows,keys,denyLot=false)=>rows.map(x=>Object.fromEntries(keys.filter(k=>x[k]!==undefined).map(k=>[k,safe(x[k],denyLot)])));
+  const data={
+   company:source.company,
+   items:fields(source.items.filter(x=>['raw','packaging'].includes(x.kind)||source.recipes.some(r=>r.itemId===x.id||r.secondaryItemId===x.id||(r.components||[]).some(c=>c.itemId===x.id))),['id','name','kind','unit','presentationName','presentationContent','presentationContentUnit','brand','registration','rnpa','archived','documents']),
+   suppliers:fields(source.suppliers,['id','name','taxId','contact','phone','email','address','archived','documents']),
+   customers:fields(source.customers,['id','name','code','taxId','contact','phone','email','address','archived']),
+   recipes:fields(source.recipes,['id','itemId','secondaryItemId','version','yield','shelfLifeDays','components','archived']),
+   purchases:fields(source.purchases.filter(within),['date','supplierId','itemId','brand','supplierLot','expiry','receivedQty','receivedUnit','qty','note']),
+   productions:fields(source.productions.filter(within),['date','itemId','trial','productionGroup','splitRole','recipe','expectedQty','qty','note'],true),
+   sales:fields(source.sales.filter(within),['date','customerId','itemId','qty'],true)
+  };
+  return send(res,200,{state:data,from,to});
+ }
  if(path==='/api/document'&&req.method==='GET'){
   const s=JSON.parse(company().state),collection=url.searchParams.get('collection');
   if(!['items','suppliers'].includes(collection))throw Error('Documento inexistente.');
   const row=s[collection].find(x=>x.id===url.searchParams.get('record')),doc=row?.documents?.find(x=>x.id===url.searchParams.get('id'));
-  if(!doc)return send(res,404,{error:'Documento inexistente.'});
+  if(!doc||(u.session_audit_mode&&collection==='items'&&!['raw','packaging'].includes(row?.kind)))return send(res,404,{error:'Documento inexistente.'});
   res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':(url.searchParams.has('download')?"attachment":"inline")+"; filename*=UTF-8''"+encodeURIComponent(doc.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(Buffer.from(doc.data.split(',')[1],'base64'));
  }
  if(path==='/api/import/preview'&&req.method==='POST'){
