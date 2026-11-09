@@ -79,6 +79,17 @@
     </section>
   </div>
 
+  <section class="card">
+      <h2>Unir stock y lotes</h2>
+      <p class="muted">Pasa todos los lotes, stock y referencias del producto origen al producto definitivo. El origen queda inactivo.</p>
+      <form method="post" action="/admin/products/merge-stock" onsubmit="return confirm('¿Unir todo el stock y los lotes en el producto destino?');">
+        <label>Producto origen<select name="source_product_id" required><option value="">Seleccionar...</option><% products.filter(p=>p.active).forEach(p=>{ %><option value="<%= p.id %>"><%= p.name %> · <%= p.unit %></option><% }) %></select></label>
+        <label>Producto destino<select name="target_product_id" required><option value="">Seleccionar...</option><% products.filter(p=>p.active).forEach(p=>{ %><option value="<%= p.id %>"><%= p.name %> · <%= p.unit %></option><% }) %></select></label>
+        <button>Unir stock y lotes</button>
+      </form>
+    </section>
+
+
   <div class="split">
     <section class="card">
       <div class="tablehead">
