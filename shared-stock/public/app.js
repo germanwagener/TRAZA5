@@ -77,7 +77,7 @@ function shell(){
 async function renderAuditMode(c){
  if(!['purchases','productions','sales','trace','items','packaging','recipes','suppliers','customers'].includes(view))view='purchases';
  if(filterView!==view){filterView=view}
- const docLinks=(collection,record,docs=[])=>docs.map(d=>'<a class="document-link no-print" target="_blank" rel="noopener" href="'+esc(documentURL(collection,record,d))+'">📄 '+esc(d.name||d.label||'Abrir PDF')+'</a>').join(' ');
+ const docLinks=(collection,record,docs=[])=>docs.map(d=>'<a class="secondary document-link no-print" target="_blank" rel="noopener" href="'+esc(documentURL(collection,record,d))+'">📄 Abrir PDF para revisión · '+esc(d.name||d.label||'Documento')+'</a> <a class="secondary no-print" download="'+esc(d.name||'documento.pdf')+'" href="'+esc(documentURL(collection,record,d))+'&amp;download=1">Descargar PDF</a>').join(' ');
  const itemName=id=>name('items',id), supplierName=id=>name('suppliers',id), customerName=id=>name('customers',id);
  const toolbar='<div class="toolbar no-print"><label>Desde<input type="date" name="auditFrom" value="'+esc(fromDate)+'"></label><label>Hasta<input type="date" name="auditTo" value="'+esc(toDate)+'"></label>'+btn('Aplicar fechas','filterAuditDates')+btn('Imprimir','print','','secondary')+'</div>';
  let content='';
