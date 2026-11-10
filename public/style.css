@@ -479,6 +479,44 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
 .supplier-edit input[type="checkbox"] { accent-color: var(--accent-deep); min-width: auto; padding: 0; }
 .supplier-edit button { margin-top: 5px; }
 
+.brand-config {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 11px;
+  background: #fbfcfb;
+}
+.brand-row-list { display: grid; gap: 8px; margin: 9px 0; }
+.brand-entry {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.brand-entry label { margin-bottom: 0; }
+.brand-entry button { align-self: end; margin-bottom: 0; }
+.product-name-line { display: flex; align-items: center; gap: 9px; }
+.brand-editor { flex: 0 0 auto; }
+.brand-editor summary {
+  list-style: none;
+  color: var(--accent-deep);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.brand-editor summary::-webkit-details-marker { display: none; }
+.brand-editor form {
+  background: var(--silver-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 8px;
+  min-width: min(470px, 70vw);
+  padding: 10px;
+}
+.brand-editor .brand-row-list { max-height: 250px; overflow: auto; }
+.brand-editor .brand-entry { grid-template-columns: minmax(110px, 1fr) minmax(130px, 1fr) auto; }
+.brand-editor button { margin-top: 5px; }
+
 @media (max-width: 1240px) {
   .app-header { align-items: flex-start; flex-wrap: wrap; position: static; }
   .brand-lockup { min-width: 248px; }
@@ -523,6 +561,10 @@ code { font-family: Consolas, monospace; background: #f0f3f1; border-radius: 4px
   .recipe-row,
   .source-row,
   .sector-edit { grid-template-columns: 1fr; }
+  .brand-entry,
+  .brand-editor .brand-entry { grid-template-columns: 1fr 1fr; }
+  .brand-entry button { grid-column: 1 / -1; }
+  .brand-editor form { min-width: 0; width: 82vw; }
   .client-name-form,
   .row-actions { min-width: 0; flex-direction: column; align-items: stretch; }
   .sector-manage,

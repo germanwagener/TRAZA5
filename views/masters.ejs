@@ -27,7 +27,7 @@
         <label>Código<input name="code" placeholder="MP-001"></label>
         <label>Nombre<input name="name" required></label>
         <label>Tipo
-          <select name="category">
+          <select id="newProductCategory" name="category">
             <option>Materia prima</option>
             <option>Subproducto</option>
             <option>Producto intermedio</option>
@@ -37,7 +37,20 @@
           </select>
         </label>
         <label>Unidad<input name="unit" value="kg" required></label>
-        <label>Marca predeterminada<input name="default_brand"></label>
+        <label id="newProductDefaultBrandField" hidden>Marca predeterminada<input name="default_brand"></label>
+        <div class="wide brand-config" id="newProductBrandSection">
+          <b>Marcas y RNPA</b>
+          <small class="block">Agregá cada marca que pueda ingresar bajo esta misma materia prima.</small>
+          <div class="brand-row-list" data-brand-list>
+            <div class="brand-entry">
+              <input type="hidden" name="brand_id" value="">
+              <label>Marca<input name="brand_name" autocomplete="off"></label>
+              <label>RNPA<input name="brand_rnpa" autocomplete="off"></label>
+              <button type="button" class="small secondary" data-remove-brand>Quitar</button>
+            </div>
+          </div>
+          <button type="button" class="small secondary" data-add-brand>+ Agregar marca</button>
+        </div>
         <label>Vida útil (días)<input type="number" min="0" name="shelf_life_days" value="0"></label>
         <fieldset class="supplier-pick">
           <legend>Proveedor/es que lo entregan</legend>
@@ -121,7 +134,38 @@
             <% products.forEach(p=>{ %>
               <tr>
                 <td><code><%= p.code||'' %></code></td>
-                <td><b><%= p.name %></b></td>
+                <td>
+                  <div class="product-name-line"><b><%= p.name %></b>
+                    <% if(p.category==='Materia prima'){ %>
+                      <details class="brand-editor">
+                        <summary title="Agregar o editar marcas y RNPA">+ Marca</summary>
+                        <form method="post" action="/admin/products/<%= p.id %>/brands">
+                          <div class="brand-row-list" data-brand-list>
+                            <% (p.brand_variants||[]).forEach(b=>{ %>
+                              <div class="brand-entry">
+                                <input type="hidden" name="brand_id" value="<%= b.id %>">
+                                <label>Marca<input name="brand_name" value="<%= b.brand %>" autocomplete="off"></label>
+                                <label>RNPA<input name="brand_rnpa" value="<%= b.rnpa||'' %>" autocomplete="off"></label>
+                                <button type="button" class="small secondary" data-remove-brand>Quitar</button>
+                              </div>
+                            <% }) %>
+                            <% if(!(p.brand_variants||[]).length){ %>
+                              <div class="brand-entry">
+                                <input type="hidden" name="brand_id" value="">
+                                <label>Marca<input name="brand_name" autocomplete="off"></label>
+                                <label>RNPA<input name="brand_rnpa" autocomplete="off"></label>
+                                <button type="button" class="small secondary" data-remove-brand>Quitar</button>
+                              </div>
+                            <% } %>
+                          </div>
+                          <button type="button" class="small secondary" data-add-brand>+ Agregar marca</button>
+                          <button type="submit" class="small">Guardar marcas</button>
+                        </form>
+                      </details>
+                    <% } %>
+                  </div>
+                  <% (p.brand_variants||[]).forEach(b=>{ %><small class="block"><%= b.brand %><%= b.rnpa?' · RNPA '+b.rnpa:'' %></small><% }) %>
+                </td>
                 <td>
                   <span><%= p.supplier_names||'Sin proveedor configurado' %></span>
                   <details class="supplier-edit">

@@ -2,7 +2,7 @@ async function getNode(pool, clientId, type, id) {
   if (type === 'receipt') {
     const { rows } = await pool.query(`
       SELECT r.id,r.internal_lot,r.supplier_lot,r.qty,r.unit,r.received_at,r.expires_at,
-             r.brand,r.unit_price,p.id product_id,p.name product,p.category,s.name supplier
+             r.brand,r.rnpa,r.unit_price,p.id product_id,p.name product,p.category,s.name supplier
       FROM receipts r
       JOIN products p ON p.id=r.product_id AND p.client_id=r.client_id
       JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id

@@ -48,6 +48,16 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS product_brands (
+  id BIGSERIAL PRIMARY KEY,
+  client_id BIGINT NOT NULL REFERENCES clients(id),
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  brand TEXT NOT NULL,
+  rnpa TEXT NOT NULL DEFAULT '',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS product_suppliers (
   id BIGSERIAL PRIMARY KEY,
   client_id BIGINT NOT NULL REFERENCES clients(id),
@@ -84,7 +94,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   client_id BIGINT NOT NULL REFERENCES clients(id),
   supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
   product_id BIGINT NOT NULL REFERENCES products(id),
+  product_brand_id BIGINT REFERENCES product_brands(id) ON DELETE SET NULL,
   brand TEXT DEFAULT '',
+  rnpa TEXT NOT NULL DEFAULT '',
   supplier_lot TEXT DEFAULT '',
   internal_lot TEXT NOT NULL,
   qty NUMERIC(14,3) NOT NULL CHECK(qty > 0),
@@ -96,6 +108,29 @@ CREATE TABLE IF NOT EXISTS receipts (
   created_by BIGINT NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS product_brand_id BIGINT REFERENCES product_brands(id) ON DELETE SET NULL;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS rnpa TEXT NOT NULL DEFAULT '';
+
+INSERT INTO product_brands(client_id,product_id,brand)
+SELECT p.client_id,p.id,BTRIM(p.default_brand)
+FROM products p
+WHERE NULLIF(BTRIM(p.default_brand),'') IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM product_brands pb
+    WHERE pb.client_id=p.client_id
+      AND pb.product_id=p.id
+      AND LOWER(BTRIM(pb.brand))=LOWER(BTRIM(p.default_brand))
+  );
+
+UPDATE receipts r
+SET product_brand_id=pb.id,
+    rnpa=COALESCE(pb.rnpa,'')
+FROM product_brands pb
+WHERE r.product_brand_id IS NULL
+  AND r.product_id=pb.product_id
+  AND r.client_id=pb.client_id
+  AND LOWER(BTRIM(COALESCE(r.brand,'')))=LOWER(BTRIM(pb.brand));
 
 CREATE TABLE IF NOT EXISTS batches (
   id BIGSERIAL PRIMARY KEY,
@@ -211,6 +246,9 @@ CREATE INDEX IF NOT EXISTS idx_suppliers_client ON suppliers(client_id,active,na
 CREATE INDEX IF NOT EXISTS idx_products_client ON products(client_id,active,name);
 CREATE INDEX IF NOT EXISTS idx_product_suppliers_client_product ON product_suppliers(client_id,product_id);
 CREATE INDEX IF NOT EXISTS idx_product_suppliers_client_supplier ON product_suppliers(client_id,supplier_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_product_brands_active_name ON product_brands(product_id,LOWER(BTRIM(brand)),BTRIM(rnpa)) WHERE active=TRUE;
+CREATE INDEX IF NOT EXISTS idx_product_brands_client_product ON product_brands(client_id,product_id,active);
+CREATE INDEX IF NOT EXISTS idx_receipts_product_brand ON receipts(client_id,product_brand_id);
 CREATE INDEX IF NOT EXISTS idx_recipes_client ON recipes(client_id,active,name);
 CREATE INDEX IF NOT EXISTS idx_receipts_client_lot ON receipts(client_id,internal_lot);
 CREATE INDEX IF NOT EXISTS idx_receipts_client_product ON receipts(client_id,product_id);

@@ -86,6 +86,29 @@ function isSuperAdmin(req) {
   return Boolean(req.session.user && req.session.user.role === 'superadmin');
 }
 
+function readBrandRows(body) {
+  const names = [].concat(body.brand_name || []);
+  const rnpas = [].concat(body.brand_rnpa || []);
+  const ids = [].concat(body.brand_id || []);
+  const rows = [];
+  const seen = new Set();
+  const length = Math.max(names.length, rnpas.length, ids.length);
+  for (let index = 0; index < length; index += 1) {
+    const brand = String(names[index] || '').trim();
+    const rnpa = String(rnpas[index] || '').trim();
+    const rawId = String(ids[index] || '').trim();
+    const id = rawId ? Number(rawId) : null;
+    if (!brand && !rnpa) continue;
+    if (!brand) throw new Error('Completá el nombre de la marca para cada RNPA.');
+    if (id !== null && (!Number.isSafeInteger(id) || id < 1)) throw new Error('Una marca seleccionada no es válida.');
+    const key = brand.toLocaleLowerCase('es-AR') + '\u0000' + rnpa.toLocaleLowerCase('es-AR');
+    if (seen.has(key)) throw new Error('La misma combinación de marca y RNPA aparece más de una vez.');
+    seen.add(key);
+    rows.push({ id, brand, rnpa });
+  }
+  return rows;
+}
+
 app.use(asyncRoute(async (req, res, next) => {
   res.locals.user = null;
   res.locals.activeClient = null;
@@ -402,7 +425,7 @@ app.get('/admin/masters', requireAdmin, requireClient, asyncRoute(async (req, re
   const [suppliers, products, sectors] = await Promise.all([
     pool.query('SELECT * FROM suppliers WHERE client_id=$1 ORDER BY active DESC,name', [clientId]),
     pool.query(
-      "SELECT p.*,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 GROUP BY p.id ORDER BY p.active DESC,p.name",
+      "SELECT p.*,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names,COALESCE((SELECT json_agg(json_build_object('id',pb.id,'brand',pb.brand,'rnpa',pb.rnpa) ORDER BY pb.brand,pb.rnpa) FROM product_brands pb WHERE pb.client_id=p.client_id AND pb.product_id=p.id AND pb.active=TRUE),'[]'::json) brand_variants FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 GROUP BY p.id ORDER BY p.active DESC,p.name",
       [clientId]
     ),
     pool.query('SELECT * FROM sectors WHERE client_id=$1 ORDER BY active DESC,position,name', [clientId])
@@ -447,6 +470,25 @@ app.post('/admin/products/merge-stock', requireAdmin, requireClient, asyncRoute(
     const target = products.rows.find(p => Number(p.id) === targetId);
     if (!source.active || !target.active) throw new Error('Los dos productos deben estar activos.');
     if (source.unit !== target.unit) throw new Error('Los productos deben tener la misma unidad para unir sus lotes.');
+    const sourceBrands = (await db.query(
+      'SELECT id,brand,rnpa,active FROM product_brands WHERE client_id=$1 AND product_id=$2 FOR UPDATE',
+      [clientId, sourceId]
+    )).rows;
+    for (const brand of sourceBrands) {
+      const targetBrand = (await db.query(
+        'SELECT id FROM product_brands WHERE client_id=$1 AND product_id=$2 AND LOWER(BTRIM(brand))=LOWER(BTRIM($3)) AND BTRIM(rnpa)=BTRIM($4) AND active=TRUE ORDER BY id LIMIT 1 FOR UPDATE',
+        [clientId, targetId, brand.brand, brand.rnpa]
+      )).rows[0];
+      if (targetBrand) {
+        await db.query(
+          'UPDATE receipts SET product_brand_id=$1 WHERE client_id=$2 AND product_brand_id=$3',
+          [targetBrand.id, clientId, brand.id]
+        );
+        await db.query('UPDATE product_brands SET active=FALSE WHERE id=$1', [brand.id]);
+      } else {
+        await db.query('UPDATE product_brands SET product_id=$1 WHERE id=$2', [targetId, brand.id]);
+      }
+    }
     await db.query(
       'INSERT INTO product_suppliers(client_id,product_id,supplier_id) SELECT client_id,$1,supplier_id FROM product_suppliers WHERE client_id=$2 AND product_id=$3 ON CONFLICT(product_id,supplier_id) DO NOTHING',
       [targetId, clientId, sourceId]
@@ -508,6 +550,7 @@ app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const brandRows = req.body.category === 'Materia prima' ? readBrandRows(req.body) : [];
     const supplierIds = [...new Set(
       [].concat(req.body.supplier_id || []).filter(Boolean).map(Number)
     )];
@@ -528,10 +571,16 @@ app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, 
         String(req.body.name || '').trim(),
         req.body.category,
         req.body.unit,
-        req.body.default_brand || '',
+        brandRows[0]?.brand || (req.body.category !== 'Materia prima' ? (req.body.default_brand || '') : ''),
         Number(req.body.shelf_life_days || 0)
       ]
     );
+    for (const brand of brandRows) {
+      await client.query(
+        'INSERT INTO product_brands(client_id,product_id,brand,rnpa) VALUES($1,$2,$3,$4)',
+        [clientId, inserted.rows[0].id, brand.brand, brand.rnpa]
+      );
+    }
     for (const supplierId of supplierIds) {
       await client.query(
         'INSERT INTO product_suppliers(client_id,product_id,supplier_id) VALUES($1,$2,$3)',
@@ -551,6 +600,62 @@ app.post('/admin/products', requireAdmin, requireClient, asyncRoute(async (req, 
     flash(req, 'error', error.code === '23505'
       ? 'No se pudo agregar el producto. Revisá que el código no esté repetido dentro de esta empresa.'
       : (error.message || 'No se pudo agregar el producto.'));
+  } finally {
+    client.release();
+  }
+  res.redirect('/admin/masters');
+}));
+
+app.post('/admin/products/:id/brands', requireAdmin, requireClient, asyncRoute(async (req, res) => {
+  const clientId = currentClientId(req);
+  const productId = Number(req.params.id);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const product = (await client.query(
+      'SELECT id,category FROM products WHERE id=$1 AND client_id=$2 FOR UPDATE',
+      [productId, clientId]
+    )).rows[0];
+    if (!product) throw new Error('El producto no pertenece a la empresa seleccionada.');
+    if (product.category !== 'Materia prima') throw new Error('Las marcas múltiples se configuran en materias primas.');
+    const brandRows = readBrandRows(req.body);
+    const existing = (await client.query(
+      'SELECT id FROM product_brands WHERE client_id=$1 AND product_id=$2 AND active=TRUE FOR UPDATE',
+      [clientId, productId]
+    )).rows;
+    const existingIds = new Set(existing.map(row => String(row.id)));
+    for (const brand of brandRows) {
+      if (brand.id && !existingIds.has(String(brand.id))) throw new Error('Una marca seleccionada no pertenece a esta materia prima.');
+    }
+    await client.query(
+      'UPDATE product_brands SET active=FALSE WHERE client_id=$1 AND product_id=$2 AND active=TRUE',
+      [clientId, productId]
+    );
+    for (const brand of brandRows) {
+      if (brand.id) {
+        await client.query(
+          'UPDATE product_brands SET brand=$1,rnpa=$2,active=TRUE WHERE id=$3 AND client_id=$4 AND product_id=$5',
+          [brand.brand, brand.rnpa, brand.id, clientId, productId]
+        );
+      } else {
+        await client.query(
+          'INSERT INTO product_brands(client_id,product_id,brand,rnpa) VALUES($1,$2,$3,$4)',
+          [clientId, productId, brand.brand, brand.rnpa]
+        );
+      }
+    }
+    await client.query(
+      'UPDATE products SET default_brand=$1 WHERE id=$2 AND client_id=$3',
+      [brandRows[0]?.brand || '', productId, clientId]
+    );
+    await client.query('COMMIT');
+    await audit(req.session.user.id, clientId, 'UPDATE', 'product_brands', productId, {
+      brands: brandRows.map(row => ({ brand: row.brand, rnpa: row.rnpa }))
+    });
+    flash(req, 'ok', 'Marcas y RNPA guardados para la materia prima.');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    flash(req, 'error', error.message || 'No se pudieron guardar las marcas.');
   } finally {
     client.release();
   }
@@ -748,7 +853,7 @@ app.get('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) => 
   const [suppliers, products, rows] = await Promise.all([
     pool.query('SELECT id,name FROM suppliers WHERE client_id=$1 AND active=TRUE ORDER BY name', [clientId]),
     pool.query(
-      "SELECT p.id,p.name,p.category,p.unit,p.default_brand,p.shelf_life_days,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 AND p.active=TRUE GROUP BY p.id ORDER BY p.name",
+      "SELECT p.id,p.name,p.category,p.unit,p.default_brand,p.shelf_life_days,COALESCE(ARRAY_AGG(ps.supplier_id ORDER BY ps.supplier_id) FILTER (WHERE ps.supplier_id IS NOT NULL),'{}') supplier_ids,COALESCE(STRING_AGG(s.name, ', ' ORDER BY s.name),'') supplier_names,COALESCE((SELECT json_agg(json_build_object('id',pb.id,'brand',pb.brand,'rnpa',pb.rnpa) ORDER BY pb.brand,pb.rnpa) FROM product_brands pb WHERE pb.client_id=p.client_id AND pb.product_id=p.id AND pb.active=TRUE),'[]'::json) brand_variants FROM products p LEFT JOIN product_suppliers ps ON ps.product_id=p.id AND ps.client_id=p.client_id LEFT JOIN suppliers s ON s.id=ps.supplier_id AND s.client_id=p.client_id WHERE p.client_id=$1 AND p.active=TRUE GROUP BY p.id ORDER BY p.name",
       [clientId]
     ),
     pool.query(
@@ -773,7 +878,7 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   const clientId = currentClientId(req);
   const [productResult, supplierResult] = await Promise.all([
     pool.query(
-      'SELECT p.unit,p.shelf_life_days,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.client_id=p.client_id) has_configured_suppliers,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.supplier_id=$3 AND ps.client_id=p.client_id) supplier_allowed FROM products p WHERE p.id=$1 AND p.client_id=$2 AND p.active=TRUE',
+      'SELECT p.unit,p.shelf_life_days,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.client_id=p.client_id) has_configured_suppliers,EXISTS(SELECT 1 FROM product_suppliers ps WHERE ps.product_id=p.id AND ps.supplier_id=$3 AND ps.client_id=p.client_id) supplier_allowed,EXISTS(SELECT 1 FROM product_brands pb WHERE pb.product_id=p.id AND pb.client_id=p.client_id AND pb.active=TRUE) has_brand_variants FROM products p WHERE p.id=$1 AND p.client_id=$2 AND p.active=TRUE',
       [req.body.product_id, clientId, req.body.supplier_id]
     ),
     pool.query(
@@ -791,6 +896,30 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
     return res.redirect('/receipts');
   }
 
+  let brandId = null;
+  let brandName = String(req.body.brand || '').trim();
+  let brandRnpa = String(req.body.rnpa || '').trim();
+  if (product.has_brand_variants) {
+    const brand = (await pool.query(
+      'SELECT id,brand,rnpa FROM product_brands WHERE id=$1 AND product_id=$2 AND client_id=$3 AND active=TRUE',
+      [req.body.product_brand_id, req.body.product_id, clientId]
+    )).rows[0];
+    if (!brand) {
+      flash(req, 'error', 'Elegí una marca registrada para esta materia prima.');
+      return res.redirect('/receipts');
+    }
+    brandId = brand.id;
+    brandName = brand.brand;
+    brandRnpa = brand.rnpa || '';
+  } else if (req.body.product_brand_id) {
+    flash(req, 'error', 'La marca seleccionada no corresponde a este producto.');
+    return res.redirect('/receipts');
+  }
+  if (brandRnpa && !brandName) {
+    flash(req, 'error', 'Completá la marca antes de ingresar su RNPA.');
+    return res.redirect('/receipts');
+  }
+
   let expires = req.body.expires_at || null;
   if (!expires && Number(product.shelf_life_days) > 0) {
     const date = new Date(req.body.received_at + 'T12:00:00Z');
@@ -799,12 +928,14 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   }
   const lot = 'MP-' + clientId + '-' + Date.now().toString(36).toUpperCase();
   const inserted = await pool.query(
-    'INSERT INTO receipts(client_id,supplier_id,product_id,brand,supplier_lot,internal_lot,qty,unit,unit_price,received_at,expires_at,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id',
+    'INSERT INTO receipts(client_id,supplier_id,product_id,product_brand_id,brand,rnpa,supplier_lot,internal_lot,qty,unit,unit_price,received_at,expires_at,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id',
     [
       clientId,
       req.body.supplier_id,
       req.body.product_id,
-      req.body.brand || '',
+      brandId,
+      brandName,
+      brandRnpa,
       req.body.supplier_lot || '',
       lot,
       Number(req.body.qty),
@@ -818,7 +949,9 @@ app.post('/receipts', requireAuth, requireClient, asyncRoute(async (req, res) =>
   );
   await audit(req.session.user.id, clientId, 'CREATE', 'receipt', inserted.rows[0].id, {
     internal_lot: lot,
-    qty: req.body.qty
+    qty: req.body.qty,
+    brand: brandName,
+    rnpa: brandRnpa
   });
   flash(req, 'ok', 'Ingreso registrado. Lote interno: ' + lot);
   res.redirect('/receipts');
@@ -865,7 +998,7 @@ app.get('/api/recipe/:id', requireAuth, requireClient, asyncRoute(async (req, re
 app.get('/api/lots/:productId', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const rows = (await pool.query(
-    "SELECT 'receipt' source_type,r.id source_id,r.internal_lot lot,r.received_at::text date,r.expires_at::text expires,(r.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$2),0)) available,s.name origin FROM receipts r JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id WHERE r.product_id=$1 AND r.client_id=$2 UNION ALL SELECT 'batch',b.id,b.internal_lot,b.produced_at::date::text,NULL,(b.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$2),0)),sec.name FROM batches b JOIN sectors sec ON sec.id=b.sector_id AND sec.client_id=b.client_id WHERE b.product_id=$1 AND b.client_id=$2 AND b.status='LIBERADO' ORDER BY date,lot",
+    "SELECT 'receipt' source_type,r.id source_id,r.internal_lot lot,r.received_at::text date,r.expires_at::text expires,r.brand,r.rnpa,(r.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$2),0)) available,s.name origin FROM receipts r JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id WHERE r.product_id=$1 AND r.client_id=$2 UNION ALL SELECT 'batch',b.id,b.internal_lot,b.produced_at::date::text,NULL,NULL::text,NULL::text,(b.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$2),0)),sec.name FROM batches b JOIN sectors sec ON sec.id=b.sector_id AND sec.client_id=b.client_id WHERE b.product_id=$1 AND b.client_id=$2 AND b.status='LIBERADO' ORDER BY date,lot",
     [req.params.productId, clientId]
   )).rows;
   res.json(rows.filter(row => Number(row.available) > 0));
@@ -986,7 +1119,7 @@ app.get('/trace', requireAuth, requireClient, asyncRoute(async (req, res) => {
 app.get('/stock', requireAuth, requireClient, asyncRoute(async (req, res) => {
   const clientId = currentClientId(req);
   const rows = (await pool.query(
-    "SELECT 'Ingreso' kind,r.id,p.name product,p.category,r.internal_lot lot,NULL::text final_lot,r.received_at::text date,r.expires_at::text expires,s.name origin,r.qty original_qty,COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$1),0) consumed,r.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$1),0) available,'LIBERADO' status,p.unit FROM receipts r JOIN products p ON p.id=r.product_id AND p.client_id=r.client_id JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id WHERE r.client_id=$1 UNION ALL SELECT 'Elaborado',b.id,p.name,p.category,b.internal_lot,b.final_lot,b.produced_at::date::text,NULL,s.name,b.qty,COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$1),0),b.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$1),0),b.status,p.unit FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id WHERE b.client_id=$1 ORDER BY date DESC,lot",
+    "SELECT 'Ingreso' kind,r.id,p.name product,p.category,r.brand,r.rnpa,r.internal_lot lot,NULL::text final_lot,r.received_at::text date,r.expires_at::text expires,s.name origin,r.qty original_qty,COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$1),0) consumed,r.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='receipt' AND bi.source_id=r.id AND consumer.client_id=$1),0) available,'LIBERADO' status,p.unit FROM receipts r JOIN products p ON p.id=r.product_id AND p.client_id=r.client_id JOIN suppliers s ON s.id=r.supplier_id AND s.client_id=r.client_id WHERE r.client_id=$1 UNION ALL SELECT 'Elaborado',b.id,p.name,p.category,NULL::text,NULL::text,b.internal_lot,b.final_lot,b.produced_at::date::text,NULL,s.name,b.qty,COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$1),0),b.qty-COALESCE((SELECT SUM(bi.qty) FROM batch_inputs bi JOIN batches consumer ON consumer.id=bi.batch_id WHERE bi.source_type='batch' AND bi.source_id=b.id AND consumer.client_id=$1),0),b.status,p.unit FROM batches b JOIN products p ON p.id=b.product_id AND p.client_id=b.client_id JOIN sectors s ON s.id=b.sector_id AND s.client_id=b.client_id WHERE b.client_id=$1 ORDER BY date DESC,lot",
     [clientId]
   )).rows;
   res.render('stock', { rows });
