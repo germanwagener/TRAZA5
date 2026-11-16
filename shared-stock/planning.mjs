@@ -1,13 +1,22 @@
 import {positive,get,needsLot} from './domain.mjs';
 const validDate=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||Number.isNaN(Date.parse(d))||new Date(d).toISOString().slice(0,10)!==d)throw Error('Fecha inválida.');return d};
 export function suggestLots(s,requirements,date,sector){
- validDate(date);const allocations=[],shortages=[];
- const totals=new Map();for(const r of requirements){const it=get(s.items,r.itemId);positive(r.qty);if(!needsLot(it))continue;totals.set(r.itemId,(totals.get(r.itemId)||0)+positive(r.qty));}
- for(const [itemId,qty] of totals){let pending=qty;
-  const lots=s.lots.filter(l=>l.itemId===itemId&&l.remaining>0&&l.status==='LIBERADO'&&l.date<=date&&(!l.expiry||l.expiry>=date)).sort((a,b)=>a.date.localeCompare(b.date)||(a.expiry||'9999').localeCompare(b.expiry||'9999')||a.code.localeCompare(b.code));
-  for(const l of lots){if(pending<=1e-8)break;const n=Math.min(l.remaining,pending);allocations.push({lotId:l.id,qty:n});pending-=n;}
-  if(pending>1e-8)shortages.push({itemId,qty:pending});
- }return{allocations,shortages};
+ validDate(date);const allocations=[],shortages=[],totals=new Map();
+ for(const r of requirements){
+  const component=get(s.items,r.itemId),qty=positive(r.qty);
+  if(!needsLot(component))continue;
+  const sourceId=component.convertedFromItemId||component.id,factor=component.convertedFromItemId?positive(component.unitsPerBox,'Piezas por caja'):1;
+  const prev=totals.get(sourceId);
+  if(prev&&prev.itemId!==component.id)throw Error('No combines cajas y piezas individuales del mismo producto en una elaboración.');
+  totals.set(sourceId,{qty:(prev?.qty||0)+qty/factor,itemId:component.id,factor});
+ }
+ for(const [sourceId,required] of totals){
+  let pending=required.qty;
+  const lots=s.lots.filter(l=>l.itemId===sourceId&&l.remaining>0&&l.status==='LIBERADO'&&l.date<=date&&(!l.expiry||l.expiry>=date)).sort((a,b)=>a.date.localeCompare(b.date)||(a.expiry||'9999').localeCompare(b.expiry||'9999')||a.code.localeCompare(b.code));
+  for(const l of lots){if(pending<=1e-8)break;const qty=Math.min(l.remaining,pending);allocations.push({lotId:l.id,qty});pending-=qty;}
+  if(pending>1e-8)shortages.push({itemId:required.itemId,qty:Math.round(pending*required.factor*1e9)/1e9});
+ }
+ return{allocations,shortages};
 }
 export function forecast(s,date){
  validDate(date);const end=Date.parse(date),start=end-29*86400000;

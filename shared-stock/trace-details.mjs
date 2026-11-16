@@ -20,12 +20,12 @@ export function traceDetails(s,lotId){
    if(!inputs.length&&!(p.untrackedInputs||[]).length)warn('missing_inputs',id,'La elaboración de '+node.name+' · '+node.code+' no tiene consumos registrados.');
    if(!Array.isArray(expected)||!Number.isFinite(Number(p.batches)))warn('missing_snapshot',id,'No se puede comprobar la cobertura de ingredientes de '+node.code+': falta su receta histórica o la cantidad de recetas elaboradas.');
    else{
-    const actual=new Map();for(const a of inputs){const key=lots.get(a.lotId)?.itemId||a.itemId;actual.set(key,(actual.get(key)||0)+Number(a.qty||0))}
+    const actual=new Map();for(const a of inputs){const key=a.recipeItemId||lots.get(a.lotId)?.itemId||a.itemId;actual.set(key,(actual.get(key)||0)+Number(a.consumedQty??a.qty??0))}
     for(const a of p.untrackedInputs||[])actual.set(a.itemId,(actual.get(a.itemId)||0)+Number(a.qty||0));
     for(const c of expected){const required=Number(c.qty)*(p.requiredInputs?1:Number(p.batches)),used=actual.get(c.itemId)||0;if(!Number.isFinite(required)||Math.abs(required-used)>1e-7*Math.max(1,required))warn('quantity_mismatch',id+':'+c.itemId,'En '+node.code+', '+(items.get(c.itemId)?.name||'un ingrediente')+' tiene '+used+' registrados frente a '+required+' previstos en la versión utilizada.');}
     for(const key of actual.keys())if(!expected.some(c=>c.itemId===key))warn('extra_input',id+':'+key,'En '+node.code+' hay un consumo que no figura en su receta histórica; se muestra el consumo registrado.');
    }
-   inputs.forEach((a,index)=>{const child=describe(a.lotId);consumptions.push({id:p.id+':'+index,parentLotId:id,productionId:p.id,parentName:node.name,parentCode:node.code,productionDate:p.date,recipeVersion:p.recipe?.version??null,lotId:a.lotId,qty:Number(a.qty),...Object.fromEntries(Object.entries(child).filter(([key])=>key!=='id')),qty:Number(a.qty)});backward(a.lotId,[...path,id])});
+   inputs.forEach((a,index)=>{const child=describe(a.lotId);consumptions.push({id:p.id+':'+index,parentLotId:id,productionId:p.id,parentName:node.name,parentCode:node.code,productionDate:p.date,recipeVersion:p.recipe?.version??null,lotId:a.lotId,qty:Number(a.qty),...Object.fromEntries(Object.entries(child).filter(([key])=>key!=='id')),qty:Number(a.consumedQty??a.qty),name:a.recipeItemId?items.get(a.recipeItemId)?.name||child.name:child.name,unit:a.recipeItemId?items.get(a.recipeItemId)?.unit||child.unit:child.unit,sourceQty:a.recipeItemId?Number(a.qty):null,sourceUnit:a.recipeItemId?items.get(lots.get(a.lotId)?.itemId)?.unit||'':null,sourceName:a.recipeItemId?items.get(lots.get(a.lotId)?.itemId)?.name||'':null});backward(a.lotId,[...path,id])});
   }
  }
  backward(lotId);
