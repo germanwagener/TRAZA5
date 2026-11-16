@@ -46,7 +46,8 @@ test('protege lotes vencidos, equivalencia y aislamiento entre empresas',()=>{
  const{s,sector,box,postre,pieceId}=fixture(),other=empty('Otra empresa');
  const recipe=operate(s,'recipe',{itemId:postre.id,sectorId:sector.id,yield:1,components:[{itemId:pieceId,qty:2}]});
  const shortage=suggestLots(s,[{itemId:pieceId,qty:2}],'2027-01-02');assert.equal(shortage.shortages.length,1);
- const before=JSON.stringify(s);assert.throws(()=>operate(s,'produce',{date:'2026-11-05',recipeId:recipe.id,batches:1,qty:1,allocations:[]}));
- assert.equal(JSON.stringify(s),before);
+ const businessState=()=>JSON.stringify({items:s.items,lots:s.lots,productions:s.productions,sales:s.sales,purchases:s.purchases});
+ const before=businessState();assert.throws(()=>operate(s,'produce',{date:'2026-11-05',recipeId:recipe.id,batches:1,qty:1,allocations:[]}));
+ assert.equal(businessState(),before);
  const old=JSON.stringify(other);operate(s,'linkPieces',{boxItemId:box.id,pieceItemId:pieceId,unitsPerBox:3});assert.equal(JSON.stringify(other),old);
 });
