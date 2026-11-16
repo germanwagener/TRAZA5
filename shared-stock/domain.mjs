@@ -109,6 +109,30 @@ export function operate(s,op,p){let result={};
 	  const inputs=Object.keys(expected).length?consume(s,p.allocations,p.date):[],cost=inputs.reduce((n,a)=>n+a.qty*a.unitCost,0),purpose=trialMode?txt(p.purpose,'Motivo de la prueba'):'';
   if(trialMode==='consumed'){const record={id:id(),date:p.date,itemId:r.itemId,sectorId:r.sectorId,recipe:structuredClone(r),batches,expectedQty:r.yield*batches,qty:0,unitCost:0,inputs,untrackedInputs,trial:true,trialMode,purpose,note:String(p.note||'')};s.trials??=[];s.trials.push(record);result=record;}
 	  else {const groupId=outputs.length>1?id():'',allocated=allocateProductionInputs(inputs,r,outputs),allocatedUntracked=allocateProductionInputs(untrackedInputs,r,outputs),allocatedRequirements=allocateProductionInputs(requirements.map(c=>({itemId:c.itemId,qty:c.required})),r,outputs),totalOutput=outputs.reduce((sum,x)=>sum+x.qty,0),created=[];for(let index=0;index<outputs.length;index++){const output=outputs[index],outputInputs=allocated[index],outputCost=outputInputs.reduce((sum,x)=>sum+x.qty*x.unitCost,0),record={id:id(),productionGroup:groupId,splitRole:output.role,date:p.date,itemId:output.itemId,sectorId:r.sectorId,recipe:structuredClone(r),batches,expectedQty:r.yield*batches*output.qty/totalOutput,qty:output.qty,unitCost:outputCost/output.qty,inputs:outputInputs,untrackedInputs:allocatedUntracked[index],requiredInputs:allocatedRequirements[index],trial:trialMode==='pilot',trialMode:trialMode||'',purpose,note:String(p.note||'')};const l=newLot(s,{itemId:output.itemId,qty:output.qty,unitCost:record.unitCost,d:p.date,expiry:p.expiry,sectorId:r.sectorId,kind:lotItem(s,{itemId:output.itemId}).kind==='product'?'PT':'SP',sourceId:record.id});l.code=productionLot+output.suffix;if(trialMode==='pilot')l.status='BLOQUEADO';record.lotId=l.id;s.productions.push(record);created.push(record)}result={...created[0],ids:created.map(x=>x.id),productionGroup:groupId,totalCost:cost};}
+ }else if(op==='unpack'){
+  date(p.date);
+  const source=get(s.lots,p.lotId),pack=active(s.items,source.itemId);
+  if(pack.kind!=='product'||pack.unit!=='u'||pack.resale)fail('Solo se pueden abrir cajas de productos elaborados, medidos en unidades.');
+  const boxes=positive(p.boxes,'Cajas'),factor=positive(p.unitsPerBox,'Piezas por caja');
+  if(!Number.isSafeInteger(boxes)||!Number.isSafeInteger(factor)||factor<2||factor>1000||!Number.isSafeInteger(boxes*factor))fail('Las cajas y las piezas por caja deben ser enteras válidas.');
+  const linked=s.items.find(i=>sameId(i.convertedFromItemId,pack.id));
+  let piece=p.targetItemId?active(s.items,p.targetItemId):linked||null;
+  const pieceName=piece?'':txt(p.targetName,'Nombre del subproducto');
+  if(!piece)piece=s.items.find(i=>i.name.trim().toLowerCase()===pieceName.toLowerCase())||null;
+  if(piece){
+    if(piece.archived||piece.kind!=='subproduct'||piece.unit!=='u'||sameId(piece.id,pack.id))fail('Seleccioná un subproducto individual activo en unidades.');
+    if(linked&&!sameId(linked.id,piece.id)||piece.convertedFromItemId&&!sameId(piece.convertedFromItemId,pack.id))fail('El subproducto pertenece a otra conversión.');
+    if(piece.unitsPerBox&&Number(piece.unitsPerBox)!==factor)fail('La conversión existente usa '+piece.unitsPerBox+' piezas por caja.');
+    if(s.recipes.some(r=>sameId(r.itemId,piece.id)||sameId(r.secondaryItemId,piece.id)))fail('El subproducto ya tiene una receta de elaboración propia.');
+  }
+  if(source.status!=='LIBERADO'||source.date>p.date||source.expiry&&source.expiry<p.date||source.remaining+1e-8<boxes)fail('Stock del lote insuficiente o no disponible en esa fecha.');
+  if(!piece)piece=operate(s,'master',{collection:'items',name:pieceName,kind:'subproduct',unit:'u'});
+  const inputs=consume(s,[{lotId:source.id,qty:boxes}],p.date),qty=boxes*factor,cost=inputs[0].unitCost/factor;
+  piece.convertedFromItemId=pack.id;piece.unitsPerBox=factor;
+  const snapshot={version:1,itemId:piece.id,sectorId:source.sectorId||'',yield:factor,components:[{itemId:pack.id,qty:1}],conversion:true};
+  const record={id:id(),conversion:true,date:p.date,itemId:piece.id,sectorId:source.sectorId||'',recipe:snapshot,batches:boxes,expectedQty:qty,qty,unitCost:cost,inputs,untrackedInputs:[],requiredInputs:[{itemId:pack.id,qty:boxes}],note:String(p.note||'')};
+  const lot=newLot(s,{itemId:piece.id,qty,unitCost:cost,d:p.date,expiry:source.expiry||'',sectorId:source.sectorId||'',kind:'SP',sourceId:record.id});
+  record.lotId=lot.id;s.productions.push(record);stockDate(s,p.date);result=record;
  }else if(op==='sale'){
   stockDate(s,p.date);active(s.customers,p.customerId);const lines=Array.isArray(p.lines)?p.lines:[p];if(!lines.length||lines.length>30)fail('Agregá entre uno y 30 productos a la venta.');const groupId=id(),records=lines.map(line=>{const priceType=line.priceType||'retail';if(!['retail','wholesale'].includes(priceType))fail('Tipo de precio inválido.');const discountPercent=Number(line.discountPercent||0);if(!Number.isFinite(discountPercent)||discountPercent<0||discountPercent>100)fail('El descuento debe estar entre 0 y 100 %.');const baseUnitPrice=amount(line.unitPrice);const finalUnitPrice=Math.round(baseUnitPrice*(1-discountPercent/100)*100)/100;const it=active(s.items,line.itemId);if(it.kind!=='product')fail('Seleccioná un producto terminado.');for(const a of line.allocations||[])if(get(s.lots,a.lotId).itemId!==it.id)fail('Lote de otro producto.');const inputs=consume(s,line.allocations,p.date),q=inputs.reduce((n,a)=>n+a.qty,0),cost=inputs.reduce((n,a)=>n+a.qty*a.unitCost,0);return{id:id(),groupId,date:p.date,customerId:p.customerId,itemId:it.id,qty:q,unitPrice:finalUnitPrice,baseUnitPrice,priceType,discountPercent,unitCost:cost/q,inputs,note:String(p.note||'')}});const delivery=createDelivery(s,{date:p.date,customerId:p.customerId,note:String(p.note||''),lines:records});records.forEach(record=>record.delivery=delivery);s.sales.push(...records);result={...records[0],ids:records.map(x=>x.id),delivery};
  }else if(op==='expense'){
