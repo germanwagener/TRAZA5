@@ -14,7 +14,11 @@ export function configureVentoFitDoughSplit(input){
  if(!near(masa.yield*gramUnit,62700))return pending('El rendimiento de masa difiere de 62,700 kg teóricos por tirada.');
  if(primary.weightSplit){
   const w=primary.weightSplit;
-  if(eq(primary.secondaryItemId,tarta.id)&&eq(w.sourceItemId,dough.id)&&w.primaryGrams===540&&w.secondaryGrams===420&&w.nominalBatchGrams===62700&&w.gramsPerSourceUnit===gramUnit&&secondary.disabled===true)return{changed:false,state,status:{configured:true,alreadyConfigured:true,source:dough.name,outputs:[emp.name,tarta.name],weightsGrams:[540,420],nominalBatchKg:62.7,stockUnchanged:true}};
+  if(eq(primary.secondaryItemId,tarta.id)&&eq(w.sourceItemId,dough.id)&&w.primaryGrams===540&&w.secondaryGrams===420&&w.nominalBatchGrams===62700&&w.gramsPerSourceUnit===gramUnit&&secondary.disabled===true){
+   if(masa.massPackingRecipeId&&!eq(masa.massPackingRecipeId,primary.id))return pending('La receta de masa está vinculada a otro fraccionamiento.');
+   if(!eq(masa.massPackingRecipeId,primary.id)){masa.massPackingRecipeId=primary.id;return{changed:true,state,status:{configured:true,directFromDough:true,source:dough.name,outputs:[emp.name,tarta.name],weightsGrams:[540,420],nominalBatchKg:62.7,stockUnchanged:true}}}
+   return{changed:false,state,status:{configured:true,alreadyConfigured:true,directFromDough:true,source:dough.name,outputs:[emp.name,tarta.name],weightsGrams:[540,420],nominalBatchKg:62.7,stockUnchanged:true}};
+  }
   return pending('Existe una configuración diferente; no fue reemplazada.');
  }
  if(primary.secondaryItemId||secondary.secondaryItemId||secondary.disabled)return pending('Una receta ya tiene otras salidas o está desactivada.');
@@ -27,5 +31,6 @@ export function configureVentoFitDoughSplit(input){
  primary.version=Number(primary.version||0)+1;
  secondary.disabled=true;
  secondary.supersededBy=primary.id;
- return{changed:true,state,status:{configured:true,source:dough.name,outputs:[emp.name,tarta.name],weightsGrams:[540,420],nominalBatchKg:62.7,stockUnchanged:true,oldProductionUnchanged:true,previousSeparateRecipeRetained:true}};
+ masa.massPackingRecipeId=primary.id;
+ return{changed:true,state,status:{configured:true,directFromDough:true,source:dough.name,outputs:[emp.name,tarta.name],weightsGrams:[540,420],nominalBatchKg:62.7,stockUnchanged:true,oldProductionUnchanged:true,previousSeparateRecipeRetained:true}};
 }
