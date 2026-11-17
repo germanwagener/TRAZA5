@@ -13,7 +13,7 @@ function splitQuantities(primaryQty,secondaryQty){
 export function weightSplitQuantities(recipe,batches,primaryQty,secondaryQty){
  const w=recipe.weightSplit;
  if(!w)return null;
- if(!recipe.secondaryItemId||recipe.components?.length!==1||String(recipe.components[0].itemId)!==String(w.sourceItemId))throw Error('La receta de discos y tartas no tiene la masa configurada correctamente.');
+ if(!recipe.secondaryItemId||!Array.isArray(recipe.components)||!recipe.components.length||(!w.directIngredients&&(recipe.components.length!==1||String(recipe.components[0].itemId)!==String(w.sourceItemId))))throw Error('La receta de discos y tartas no tiene las materias primas configuradas correctamente.');
  const {primary,secondary}=splitQuantities(primaryQty,secondaryQty);
  if(!Number.isInteger(primary)||!Number.isInteger(secondary))throw Error('Los discos y las tapas se registran en paquetes enteros.');
  if(![w.primaryGrams,w.secondaryGrams,w.nominalBatchGrams,w.gramsPerSourceUnit].every(x=>Number.isFinite(Number(x))&&Number(x)>0))throw Error('La equivalencia de pesos de los paquetes es inválida.');
@@ -32,7 +32,7 @@ export function splitRequirements(recipe,batches,primaryQty=0,secondaryQty=0){
  const count=positive(batches,'La cantidad de recetas');
  if(!recipe.secondaryItemId)return recipe.components.map(component=>({...component,scope:'both',required:rounded(Number(component.qty)*count)}));
  const {primary,secondary,total}=splitQuantities(primaryQty,secondaryQty);
- if(recipe.weightSplit){const mass=weightSplitQuantities(recipe,count,primary,secondary);return recipe.components.map(component=>({...component,scope:'both',required:mass.sourceRequired}));}
+ if(recipe.weightSplit){const mass=weightSplitQuantities(recipe,count,primary,secondary);return recipe.components.map(component=>({...component,scope:'both',required:rounded(Number(component.qty)*(recipe.weightSplit.directIngredients?count:mass.sourceRequired/Number(component.qty)))}));}
  return recipe.components.map(component=>{const scope=outputScope(component.scope),share=scope==='primary'?primary/total:scope==='secondary'?secondary/total:1;return{...component,scope,required:rounded(Number(component.qty)*count*share)}}).filter(component=>component.required>0);
 }
 
