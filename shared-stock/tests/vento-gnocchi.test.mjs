@@ -37,7 +37,8 @@ test('convierte las dos variedades en dos recetas independientes directas sin mo
  }
  assert.equal(result.outcomes[0].ingredientSumKg,17.5);assert.equal(result.outcomes[1].ingredientSumKg,19.5);
  assert.equal(result.outcomes[0].massDifferenceKg,12.5);assert.equal(result.outcomes[1].massDifferenceKg,10.5);
- assert.equal(configureVentoFitGnocchi(result.state).changed,false);
+ const repeat=configureVentoFitGnocchi(result.state);assert.equal(repeat.changed,false);assert.ok(repeat.outcomes.every(x=>x.status==='configurada'));
+ assert.deepEqual(repeat.outcomes.map(x=>x.flavor),['naturales','espinaca']);
 });
 test('cada variedad produce porciones 500 g descontando SOLO sus ingredientes y dejando trazabilidad',()=>{
  const {s,variants,materials}=fixture(),st=configureVentoFitGnocchi(s).state;

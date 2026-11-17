@@ -11,7 +11,7 @@ export function configureVentoFitGnocchi(source){
  const state=structuredClone(source),outcomes=[];let changed=false;
  const find=name=>state.items.filter(i=>normalized(i.name)===normalized(name)&&!i.archived);
  for(const spec of specs){
-  const products=find(spec.finished),masses=find(spec.mass);
+  const products=find(spec.finished),masses=state.items.filter(i=>normalized(i.name)===normalized(spec.mass));
   if(products.length!==1||masses.length!==1){outcomes.push({flavor:spec.flavor,status:'pendiente',reason:'Artículo de producto final o masa ausente/ambiguo'});continue}
   const product=products[0],mass=masses[0],pr=state.recipes.filter(r=>same(r.itemId,product.id)),mr=state.recipes.filter(r=>same(r.itemId,mass.id));
   if(pr.length!==1||mr.length!==1){outcomes.push({flavor:spec.flavor,status:'pendiente',reason:'Se esperaba exactamente una receta de cada tipo'});continue}
@@ -21,7 +21,7 @@ export function configureVentoFitGnocchi(source){
    outcomes.push({flavor:spec.flavor,status:correct?'configurada':'pendiente',reason:correct?undefined:'La receta previamente unificada difiere de lo esperado',packagesPerBatch:correct?60:undefined});
    continue;
   }
-  if(product.kind!=='product'||product.unit!=='u'||mass.kind!=='subproduct'||mass.unit!=='kg'||product.resale||finished.disabled||dough.disabled||finished.secondaryItemId||dough.secondaryItemId){
+  if(product.kind!=='product'||product.unit!=='u'||mass.kind!=='subproduct'||mass.unit!=='kg'||mass.archived||product.resale||finished.disabled||dough.disabled||finished.secondaryItemId||dough.secondaryItemId){
    outcomes.push({flavor:spec.flavor,status:'pendiente',reason:'Tipo, unidad o configuración incompatible'});continue;
   }
   if(!close(dough.yield,30)||!close(finished.yield,1)||finished.components.length!==1||!same(finished.components[0].itemId,mass.id)||!close(finished.components[0].qty,.5)||finished.sectorId!==dough.sectorId||finished.shelfLifeDays!==dough.shelfLifeDays){
