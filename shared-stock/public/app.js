@@ -42,7 +42,7 @@ const select=(key,label,choices,value='',blank=true)=>{
 const customerLabel=c=>c.code?.trim()?c.code.trim()+' - '+c.name:c.name;
 const searchText=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase().trim();
 const pickerSearchText=value=>searchText(value);
-const pickerMatches=(label,query)=>pickerSearchText(query).split(/\\s+/).filter(Boolean).every(term=>pickerSearchText(label).includes(term));
+const pickerMatches=(label,query)=>pickerSearchText(query).split(/\s+/).filter(Boolean).every(term=>pickerSearchText(label).includes(term));
 function syncPickerValue(source){const box=source?.closest('.search-select');if(!box)return;const input=box.querySelector('[data-picker-search]'),chosen=source.selectedOptions[0];input.value=source.value?chosen?.textContent||'':'';input.setCustomValidity('');}
 function pickerClose(box){if(!box)return;const list=box.querySelector('.picker-results');list.hidden=true;box.querySelector('[data-picker-search]').setAttribute('aria-expanded','false');}
 function pickerOpen(box,all=false){
@@ -51,7 +51,7 @@ function pickerOpen(box,all=false){
  const q=all?'':input.value;
  const found=[...source.options].filter(o=>o.value&&pickerMatches(o.textContent,q)).sort((a,b)=>{
   const p=pickerSearchText(q);if(!p)return 0;const x=pickerSearchText(a.textContent),y=pickerSearchText(b.textContent);
-  const score=t=>t===p?0:t.startsWith(p)?1:t.split(/\\s+/).some(w=>w.startsWith(p))?2:3;
+  const score=t=>t===p?0:t.startsWith(p)?1:t.split(/\s+/).some(w=>w.startsWith(p))?2:3;
   return score(x)-score(y);
  });
  box._pickerOptions=found;
