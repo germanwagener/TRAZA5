@@ -32,7 +32,7 @@ export function splitRequirements(recipe,batches,primaryQty=0,secondaryQty=0){
  const count=positive(batches,'La cantidad de recetas');
  if(!recipe.secondaryItemId)return recipe.components.map(component=>({...component,scope:'both',required:rounded(Number(component.qty)*count)}));
  const {primary,secondary,total}=splitQuantities(primaryQty,secondaryQty);
- if(recipe.weightSplit){const mass=weightSplitQuantities(recipe,count,primary,secondary);return recipe.components.map(component=>({...component,scope:'both',required:rounded(Number(component.qty)*(recipe.weightSplit.directIngredients?count:mass.sourceRequired/Number(component.qty)))}));}
+ if(recipe.weightSplit){const mass=weightSplitQuantities(recipe,count,primary,secondary);return recipe.components.map(component=>({...component,scope:'both',required:rounded(recipe.weightSplit.directIngredients?Number(component.qty)*count:mass.sourceRequired)}));}
  return recipe.components.map(component=>{const scope=outputScope(component.scope),share=scope==='primary'?primary/total:scope==='secondary'?secondary/total:1;return{...component,scope,required:rounded(Number(component.qty)*count*share)}}).filter(component=>component.required>0);
 }
 
