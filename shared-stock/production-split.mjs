@@ -38,7 +38,7 @@ export function splitRequirements(recipe,batches,primaryQty=0,secondaryQty=0){
 
 export function allocateProductionInputs(inputs,recipe,outputs){
  if(outputs.length===1)return[inputs.map(input=>({...input}))];
- const masses=recipe.weightSplit?weightSplitQuantities(recipe,1,outputs[0].qty,outputs[1].qty):null;
+ const masses=recipe.weightSplit?{primaryGrams:Number(outputs[0].qty)*Number(recipe.weightSplit.primaryGrams),secondaryGrams:Number(outputs[1].qty)*Number(recipe.weightSplit.secondaryGrams),totalGrams:Number(outputs[0].qty)*Number(recipe.weightSplit.primaryGrams)+Number(outputs[1].qty)*Number(recipe.weightSplit.secondaryGrams)}:null;
  const total=masses?masses.totalGrams:outputs[0].qty+outputs[1].qty,primaryShare=masses?masses.primaryGrams/total:outputs[0].qty/total,result=[[],[]],byItem=new Map(recipe.components.map(component=>[component.itemId,outputScope(component.scope)]));
  for(const input of inputs){const scope=byItem.get(input.recipeItemId||input.itemId)||'both';if(scope==='primary'){result[0].push({...input});continue}if(scope==='secondary'){result[1].push({...input});continue}
   const first=rounded(Number(input.qty)*primaryShare),second=rounded(Number(input.qty)-first);if(first>0)result[0].push({...input,qty:first,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*first/input.qty)}:{})});if(second>0)result[1].push({...input,qty:second,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*second/input.qty)}:{})});
