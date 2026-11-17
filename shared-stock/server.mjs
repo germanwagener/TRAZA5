@@ -15,6 +15,7 @@ import {fileURLToPath} from 'node:url';
 import {empty,operate,report,trace,id,avgCost,recipeCost,adjustStock} from './domain.mjs';
 import {splitRequirements} from './production-split.mjs';
 import {configureVentoFitTortitas} from './vento-tortitas.mjs';
+import {configureVentoFitDoughSplit} from './vento-dough-split.mjs';
 const root=dirname(fileURLToPath(import.meta.url));
 const dbPath=process.env.DB_PATH||join(root,'data','gestion.sqlite');mkdirSync(dirname(dbPath),{recursive:true});
 const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -58,16 +59,20 @@ try{
   console.log('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:result.changed,outcomes:result.outcomes,stockUnchanged:true}));
  }else console.log('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:false,reason:'No se encontró exactamente una empresa Vento Fit',matches:ventoCompanies.length}));
 }catch(e){console.error('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:false,error:e.message}))}
-// Diagnóstico de la receta madre y sus salidas, sin modificar existencias ni recetas.
-try {
- const n=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
- const companies=db.prepare('SELECT id,name,state FROM companies').all().filter(x=>n(x.name)==='VENTOFIT');
+// Consolidación idempotente de la masa de Vento Fit en dos presentaciones por peso.
+try{
+ const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const companies=db.prepare('SELECT id,name,state FROM companies').all().filter(x=>normalize(x.name)==='VENTOFIT');
  if(companies.length===1){
-  const x=JSON.parse(companies[0].state),keys=['MASAPARADISCOSDEEMPANADAYPASCUALINA','DISCOSPARAEMPANADAS','TAPASPARAPASCUALINAS'];
-  const found=keys.map(key=>{const items=x.items.filter(i=>n(i.name)===key);return{key,items:items.map(i=>({id:i.id,name:i.name,unit:i.unit,kind:i.kind,archived:i.archived,presentationName:i.presentationName,presentationContent:i.presentationContent,presentationContentUnit:i.presentationContentUnit,recipe:x.recipes.filter(r=>String(r.itemId)===String(i.id)).map(r=>({id:r.id,yield:r.yield,secondaryItemId:r.secondaryItemId,shelfLifeDays:r.shelfLifeDays,version:r.version,components:r.components.map(c=>({name:x.items.find(ii=>String(ii.id)===String(c.itemId))?.name,qty:c.qty,unit:x.items.find(ii=>String(ii.id)===String(c.itemId))?.unit}))})),lotCount:x.lots.filter(l=>String(l.itemId)===String(i.id)).length}))}});
-  console.log('VENTO_DOUGH_DIAGNOSTIC '+JSON.stringify(found));
- }else console.log('VENTO_DOUGH_DIAGNOSTIC '+JSON.stringify({companyMatches:companies.length}));
-}catch(e){console.error('VENTO_DOUGH_DIAGNOSTIC '+e.message)}
+  const company=companies[0],current=JSON.parse(company.state),updated=configureVentoFitDoughSplit(current);
+  if(updated.changed)tx(()=>{
+   db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(updated.state),company.id);
+   const admin=db.prepare("SELECT id FROM users WHERE username='juni' AND role='admin'").get()||db.prepare("SELECT id FROM users WHERE role='admin' ORDER BY username LIMIT 1").get();
+   if(admin)log({id:admin.id,company_id:company.id},'vento_dough_split_configured',{reason:'Producción de masa fraccionada en paquetes de discos 540 g y tapas 420 g',stockUnchanged:true,oldProductionUnchanged:true});
+  });
+  console.log('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:updated.changed,...updated.status}));
+ }else console.log('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:false,reason:'Se requiere una única empresa Vento Fit',count:companies.length}));
+}catch(e){console.error('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:false,error:e.message}))}
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
 const secure=PUBLIC.startsWith('https://');const cookie=(t,age)=>`gestion_session=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`;
@@ -290,7 +295,7 @@ const server=http.createServer(async(req,res)=>{try{
  if(path==='/api/planning'&&req.method==='GET')return send(res,200,{rows:forecast(JSON.parse(company().state),url.searchParams.get('date'))});
  if(path==='/api/suggest'&&req.method==='GET'){
   const s=JSON.parse(company().state),date=url.searchParams.get('date'),rid=url.searchParams.get('recipe');let requirements;
-  if(rid){const r=s.recipes.find(x=>x.id===rid);if(!r)throw Error('Elegí una receta.');const batches=Number(url.searchParams.get('batches'));if(!Number.isFinite(batches)||batches<=0)throw Error('Indicá la cantidad de recetas a elaborar antes de sugerir lotes.');requirements=splitRequirements(r,batches,url.searchParams.get('primaryQty'),url.searchParams.get('secondaryQty')).map(x=>({itemId:x.itemId,qty:x.required}));}
+  if(rid){const r=s.recipes.find(x=>x.id===rid);if(!r)throw Error('Elegí una receta.');if(r.disabled)throw Error('La receta fue reemplazada por la elaboración dividida.');const batches=Number(url.searchParams.get('batches'));if(!Number.isFinite(batches)||batches<=0)throw Error('Indicá la cantidad de recetas a elaborar antes de sugerir lotes.');requirements=splitRequirements(r,batches,url.searchParams.get('primaryQty'),url.searchParams.get('secondaryQty')).map(x=>({itemId:x.itemId,qty:x.required}));}
   else {const itemId=url.searchParams.get('item'),qty=Number(url.searchParams.get('qty'));if(!itemId)throw Error('Elegí un producto antes de sugerir lotes.');if(!Number.isFinite(qty)||qty<=0)throw Error('Indicá la cantidad a vender antes de sugerir lotes.');requirements=[{itemId,qty}];}
   return send(res,200,suggestLots(s,requirements,date));
  }

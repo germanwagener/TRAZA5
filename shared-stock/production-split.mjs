@@ -9,6 +9,19 @@ function splitQuantities(primaryQty,secondaryQty){
  return {primary,secondary,total:primary+secondary};
 }
 
+
+export function weightSplitQuantities(recipe,batches,primaryQty,secondaryQty){
+ const w=recipe.weightSplit;
+ if(!w)return null;
+ if(!recipe.secondaryItemId||recipe.components?.length!==1||String(recipe.components[0].itemId)!==String(w.sourceItemId))throw Error('La receta de discos y tartas no tiene la masa configurada correctamente.');
+ const {primary,secondary}=splitQuantities(primaryQty,secondaryQty);
+ if(!Number.isInteger(primary)||!Number.isInteger(secondary))throw Error('Los discos y las tapas se registran en paquetes enteros.');
+ if(![w.primaryGrams,w.secondaryGrams,w.nominalBatchGrams,w.gramsPerSourceUnit].every(x=>Number.isFinite(Number(x))&&Number(x)>0))throw Error('La equivalencia de pesos de los paquetes es inválida.');
+ const primaryGrams=primary*Number(w.primaryGrams),secondaryGrams=secondary*Number(w.secondaryGrams),totalGrams=primaryGrams+secondaryGrams,limitGrams=positive(batches,'Cantidad de tiradas')*Number(w.nominalBatchGrams);
+ if(totalGrams>limitGrams+0.000001)throw Error('Los paquetes superan la masa disponible por tirada ('+(limitGrams/1000).toLocaleString('es-AR')+' kg). Aumentá las tiradas o corregí las cantidades.');
+ return{primary,secondary,primaryGrams,secondaryGrams,totalGrams,limitGrams,sourceRequired:rounded(totalGrams/Number(w.gramsPerSourceUnit))};
+}
+
 export function productionOutputs(recipe,data){
  if(!recipe.secondaryItemId)return[{role:'single',itemId:recipe.itemId,qty:positive(data.qty,'La cantidad producida'),suffix:''}];
  const {primary,secondary}=splitQuantities(data.primaryQty,data.secondaryQty);
@@ -19,14 +32,16 @@ export function splitRequirements(recipe,batches,primaryQty=0,secondaryQty=0){
  const count=positive(batches,'La cantidad de recetas');
  if(!recipe.secondaryItemId)return recipe.components.map(component=>({...component,scope:'both',required:rounded(Number(component.qty)*count)}));
  const {primary,secondary,total}=splitQuantities(primaryQty,secondaryQty);
+ if(recipe.weightSplit){const mass=weightSplitQuantities(recipe,count,primary,secondary);return recipe.components.map(component=>({...component,scope:'both',required:mass.sourceRequired}));}
  return recipe.components.map(component=>{const scope=outputScope(component.scope),share=scope==='primary'?primary/total:scope==='secondary'?secondary/total:1;return{...component,scope,required:rounded(Number(component.qty)*count*share)}}).filter(component=>component.required>0);
 }
 
 export function allocateProductionInputs(inputs,recipe,outputs){
  if(outputs.length===1)return[inputs.map(input=>({...input}))];
- const total=outputs[0].qty+outputs[1].qty,result=[[],[]],byItem=new Map(recipe.components.map(component=>[component.itemId,outputScope(component.scope)]));
+ const masses=recipe.weightSplit?weightSplitQuantities(recipe,1,outputs[0].qty,outputs[1].qty):null;
+ const total=masses?masses.totalGrams:outputs[0].qty+outputs[1].qty,primaryShare=masses?masses.primaryGrams/total:outputs[0].qty/total,result=[[],[]],byItem=new Map(recipe.components.map(component=>[component.itemId,outputScope(component.scope)]));
  for(const input of inputs){const scope=byItem.get(input.recipeItemId||input.itemId)||'both';if(scope==='primary'){result[0].push({...input});continue}if(scope==='secondary'){result[1].push({...input});continue}
-  const first=rounded(Number(input.qty)*outputs[0].qty/total),second=rounded(Number(input.qty)-first);if(first>0)result[0].push({...input,qty:first,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*first/input.qty)}:{})});if(second>0)result[1].push({...input,qty:second,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*second/input.qty)}:{})});
+  const first=rounded(Number(input.qty)*primaryShare),second=rounded(Number(input.qty)-first);if(first>0)result[0].push({...input,qty:first,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*first/input.qty)}:{})});if(second>0)result[1].push({...input,qty:second,...(input.consumedQty!==undefined?{consumedQty:rounded(input.consumedQty*second/input.qty)}:{})});
  }
  return result;
 }
