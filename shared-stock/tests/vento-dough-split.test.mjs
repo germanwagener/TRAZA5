@@ -58,3 +58,28 @@ test('las recetas divididas ordinarias mantienen el reparto original',()=>{
  const recipe={secondaryItemId:'B',components:[{itemId:'A',qty:5,scope:'both'}]};
  assert.equal(splitRequirements(recipe,2,4,6)[0].required,10);
 });
+
+test('desde MASA registra la tirada y las dos salidas en un solo movimiento, con remanente trazable',()=>{
+ const {s,dough,emp,tarta,produced}=fixture();
+ const st=configureVentoFitDoughSplit(s).state,source=st.recipes.find(r=>r.itemId===dough.id),packing=st.recipes.find(r=>r.itemId===emp.id);
+ assert.equal(source.massPackingRecipeId,packing.id);
+ const supplier=st.suppliers[0],raw=st.items.find(i=>i.name==='Harina de almendras');
+ const more=operate(st,'purchase',{date:'2026-11-02',itemId:raw.id,supplierId:supplier.id,supplierLot:'HAR02',qty:100,unitCost:11,expiry:'2027-06-01'});
+ const oldDough=st.lots.find(l=>l.id===produced.lotId).remaining;
+ const result=operate(st,'produce',{date:'2026-11-03',lotCode:'TIRADA02',recipeId:source.id,batches:1,packTogether:true,primaryQty:50,secondaryQty:30,allocations:[{lotId:more.lotId,qty:62.7}]});
+ assert.equal(result.masaproduced,62.7);assert.equal(result.masaconsumed,39.6);
+ assert.ok(Math.abs(result.masaremaining-23.1)<1e-6);
+ assert.equal(st.lots.find(l=>l.id===produced.lotId).remaining,oldDough);
+ assert.ok(Math.abs(st.lots.find(l=>l.id===result.masalotId).remaining-23.1)<1e-6);
+ const finals=st.productions.filter(p=>p.productionGroup===result.productionGroup&&result.productionGroup);
+ assert.equal(finals.length,2);assert.deepEqual(finals.map(p=>p.qty),[50,30]);
+ assert.deepEqual(finals.map(p=>p.itemId),[emp.id,tarta.id]);
+ assert.ok(trace(st,finals[0].lotId).ancestors.includes(more.lotId));
+ assert.ok(trace(st,finals[1].lotId).ancestors.includes(result.masalotId));
+ assert.ok(st.productions.some(p=>p.lotId===result.masalotId&&p.recipe.itemId===dough.id));
+ const again=configureVentoFitDoughSplit(st);assert.equal(again.changed,false);
+});
+test('dos tiradas admiten mayor cantidad y mantienen el reparto por peso',()=>{
+ const {s,r1}=fixture(),st=configureVentoFitDoughSplit(s).state,r=st.recipes.find(x=>x.id===r1.id);
+ assert.equal(splitRequirements(r,2,100,80)[0].required,87.6);
+});
