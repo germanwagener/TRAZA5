@@ -58,6 +58,16 @@ try{
   console.log('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:result.changed,outcomes:result.outcomes,stockUnchanged:true}));
  }else console.log('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:false,reason:'No se encontró exactamente una empresa Vento Fit',matches:ventoCompanies.length}));
 }catch(e){console.error('VENTO_FIT_TORTITAS_STATUS '+JSON.stringify({updated:false,error:e.message}))}
+// Diagnóstico de la receta madre y sus salidas, sin modificar existencias ni recetas.
+try {
+ const n=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const companies=db.prepare('SELECT id,name,state FROM companies').all().filter(x=>n(x.name)==='VENTOFIT');
+ if(companies.length===1){
+  const x=JSON.parse(companies[0].state),keys=['MASAPARADISCOSDEEMPANADAYPASCUALINA','DISCOSPARAEMPANADAS','TAPASPARAPASCUALINAS'];
+  const found=keys.map(key=>{const items=x.items.filter(i=>n(i.name)===key);return{key,items:items.map(i=>({id:i.id,name:i.name,unit:i.unit,kind:i.kind,archived:i.archived,presentationName:i.presentationName,presentationContent:i.presentationContent,presentationContentUnit:i.presentationContentUnit,recipe:x.recipes.filter(r=>String(r.itemId)===String(i.id)).map(r=>({id:r.id,yield:r.yield,secondaryItemId:r.secondaryItemId,shelfLifeDays:r.shelfLifeDays,version:r.version,components:r.components.map(c=>({name:x.items.find(ii=>String(ii.id)===String(c.itemId))?.name,qty:c.qty,unit:x.items.find(ii=>String(ii.id)===String(c.itemId))?.unit}))})),lotCount:x.lots.filter(l=>String(l.itemId)===String(i.id)).length}))}});
+  console.log('VENTO_DOUGH_DIAGNOSTIC '+JSON.stringify(found));
+ }else console.log('VENTO_DOUGH_DIAGNOSTIC '+JSON.stringify({companyMatches:companies.length}));
+}catch(e){console.error('VENTO_DOUGH_DIAGNOSTIC '+e.message)}
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
 const secure=PUBLIC.startsWith('https://');const cookie=(t,age)=>`gestion_session=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`;
