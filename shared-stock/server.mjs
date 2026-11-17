@@ -73,6 +73,25 @@ try{
   console.log('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:updated.changed,...updated.status}));
  }else console.log('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:false,reason:'Se requiere una única empresa Vento Fit',count:companies.length}));
 }catch(e){console.error('VENTO_FIT_DOUGH_SPLIT_STATUS '+JSON.stringify({updated:false,error:e.message}))}
+// Diagnóstico de recetas de ñoquis en Vento Fit (solo lectura, no modifica inventario).
+try {
+ const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+ const companies=db.prepare('SELECT id,name,state FROM companies').all().filter(x=>normalize(x.name).replace(/[^A-Z0-9]/g,'')==='VENTOFIT');
+ if(companies.length===1){
+  const st=JSON.parse(companies[0].state);
+  const relevant=st.items.filter(x=>/N(O|O|Ñ)QU|GNOCCH/.test(normalize(x.name))||normalize(x.name).includes('NOQUI'));
+  const rows=relevant.map(x=>({
+   name:x.name,id:x.id,unit:x.unit,kind:x.kind,archived:x.archived,presentationName:x.presentationName,presentationContent:x.presentationContent,presentationContentUnit:x.presentationContentUnit,
+   recipes:st.recipes.filter(r=>String(r.itemId)===String(x.id)||String(r.secondaryItemId)===String(x.id)).map(r=>({
+    id:r.id,itemId:r.itemId,secondaryItemId:r.secondaryItemId,yield:r.yield,shelfLifeDays:r.shelfLifeDays,version:r.version,disabled:r.disabled,sector:st.sectors.find(k=>String(k.id)===String(r.sectorId))?.name,
+    components:r.components.map(c=>({name:st.items.find(i=>String(i.id)===String(c.itemId))?.name,id:c.itemId,qty:c.qty,unit:st.items.find(i=>String(i.id)===String(c.itemId))?.unit}))
+   })),
+   lots:st.lots.filter(l=>String(l.itemId)===String(x.id)).map(l=>({remaining:l.remaining,qty:l.qty,date:l.date,expiry:l.expiry})),
+   productionCount:st.productions.filter(p=>String(p.itemId)===String(x.id)).length
+  }));
+  console.log('VENTO_NOQUIS_DIAGNOSTIC '+JSON.stringify(rows));
+ }else console.log('VENTO_NOQUIS_DIAGNOSTIC '+JSON.stringify({companyCount:companies.length}));
+}catch(e){console.error('VENTO_NOQUIS_DIAGNOSTIC '+e.message)}
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
 const secure=PUBLIC.startsWith('https://');const cookie=(t,age)=>`gestion_session=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`;
