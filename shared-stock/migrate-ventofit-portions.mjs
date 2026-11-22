@@ -8,7 +8,24 @@ export function configureVentofitPortions(s){
   ['PANQUEQUES SALADOS','PANQUEQUES SALADOS CAJA X12 240 G',.24],
   ['CANELONES DE POLLO','CANELONES DE POLLO CAJA X3 300 G',.3],
   ['CANELONES DE VERDURA','CANELONES DE VERDURA CAJA X3 300 G',.3],
-  ['PAN PARA PAN RALLADO','PAN RALLADO 500 G',.5]
+  ['PAN PARA PAN RALLADO','PAN RALLADO 500 G',.5],
+  ['BUDÍN DE CHOCOLATE Y NUEZ',null,2.5],
+  ['BUDÍN DE DULCE DE LECHE Y FRUTOS SECOS',null,2.5],
+  ['BUDÍN DE LIMÓN CON GLASÉ',null,2.5],
+  ['BUDÍN DE PISTACHO Y CHOCOLATE BLANCO',null,2.5],
+  ['BUDÍN MARMOLADO CON PASTA DE MANÍ',null,2.5],
+  ['COOKIES CON CHIPS DE CHOCOLATE',null,.15],
+  ['COOKIES DE CACAO Y MANÍ',null,.15],
+  ['COOKIES DE LIMÓN Y COCO',null,.15],
+  ['PEPAS DE CACAO Y FRUTOS ROJOS',null,.15],
+  ['PEPAS DE VAINILLA Y DULCE DE LECHE',null,.15],
+  ['PEPAS DE VAINILLA Y MEMBRILLO',null,.15],
+  ['CRACKERS SABOR ORÉGANO',null,.2],
+  ['CRACKERS SABOR PIZZA',null,.2],
+  ['CRACKERS SALADAS',null,.2],
+  ['GRANOLA COMÚN',null,.32],
+  ['GRANOLA CON ARÁNDANOS',null,.32],
+  ['PAN DE HARINA DE ALMENDRAS',null,.4]
  ];
  for(const [baseName,packName,kg] of portions){
   const base=s.items.find(i=>i.name===baseName),pack=s.items.find(i=>i.name===packName);
