@@ -17,6 +17,7 @@ import {splitRequirements} from './production-split.mjs';
 import {configureVentoFitTortitas} from './vento-tortitas.mjs';
 import {configureVentoFitDoughSplit} from './vento-dough-split.mjs';
 import {configureVentoFitGnocchi} from './vento-gnocchi.mjs';
+import {migrateVentofitPouchRecipes} from './migrate-ventofit-pouches.mjs';
 const root=dirname(fileURLToPath(import.meta.url));
 const dbPath=process.env.DB_PATH||join(root,'data','gestion.sqlite');mkdirSync(dirname(dbPath),{recursive:true});
 const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -86,8 +87,10 @@ try{
    if(admin)log({id:admin.id,company_id:company.id},'vento_noquis_unificados',{variants:result.outcomes,stockUnchanged:true,previousRecipesRetained:true});
   });
   console.log('VENTO_FIT_GNOCCHI_STATUS '+JSON.stringify({updated:result.changed,outcomes:result.outcomes,stockUnchanged:true,previousRecipesRetained:true}));
- }else console.log('VENTO_FIT_GNOCCHI_STATUS '+JSON.stringify({updated:false,reason:'Se requiere una única empresa Vento Fit',count:companies.length}));
+  }else console.log('VENTO_FIT_GNOCCHI_STATUS '+JSON.stringify({updated:false,reason:'Se requiere una única empresa Vento Fit',count:companies.length}));
 }catch(e){console.error('VENTO_FIT_GNOCCHI_STATUS '+JSON.stringify({updated:false,error:e.message}))}
+const ventofitPouchMigration=migrateVentofitPouchRecipes(db);
+if(ventofitPouchMigration.updated.length)console.log('Recetas pouch de Ventofit actualizadas: '+ventofitPouchMigration.updated.length+'.');
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
 const secure=PUBLIC.startsWith('https://');const cookie=(t,age)=>`gestion_session=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`;
