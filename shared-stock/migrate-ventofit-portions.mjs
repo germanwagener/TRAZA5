@@ -25,12 +25,20 @@ export function configureVentofitPortions(s){
   ['CRACKERS SALADAS',null,.2],
   ['GRANOLA COMÚN',null,.32],
   ['GRANOLA CON ARÁNDANOS',null,.32],
-  ['PAN DE HARINA DE ALMENDRAS',null,.4]
+  ['PAN DE HARINA DE ALMENDRAS',null,.6]
  ];
  for(const [baseName,packName,kg] of portions){
   const base=s.items.find(i=>i.name===baseName),pack=s.items.find(i=>i.name===packName);
   const r=base&&s.recipes.find(r=>same(r.itemId,base.id)&&!r.disabled);
-  if(!r||r.ventofitDirectPortion)continue;
+  if(!r)continue;
+  if(r.ventofitDirectPortion){
+   const previous=Number(r.ventofitDirectPortion.kg);
+   if(previous===kg)continue;
+   r.components=r.components.map(c=>({...c,qty:round(Number(c.qty)*kg/previous)}));
+   for(const other of s.recipes)if(other!==r)for(const c of other.components||[])if(same(c.itemId,base.id))c.qty=round(Number(c.qty)*previous/kg);
+   for(const l of s.lots.filter(l=>same(l.itemId,base.id))){l.qty=round(Number(l.qty)*previous/kg);l.remaining=round(Number(l.remaining)*previous/kg);l.unitCost=Number(l.unitCost||0)*kg/previous;}
+   r.ventofitDirectPortion={kg};r.version=Number(r.version||0)+1;changes.push(base.name);continue;
+  }
   if(base.unit!=='kg'||!(Number(r.yield)>0))throw Error('Porción incompatible: '+baseName);
   const oldYield=Number(r.yield);
   r.components=r.components.map(c=>({...c,qty:round(Number(c.qty)*kg/oldYield)}));
