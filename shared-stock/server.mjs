@@ -21,6 +21,7 @@ import {migrateVentofitPouchRecipes} from './migrate-ventofit-pouches.mjs';
 import {migrateVentofitBars} from './migrate-ventofit-bars.mjs';
 import {migrateVentofitBizcochitos} from './migrate-ventofit-bizcochitos.mjs';
 import {migrateVentofitPortions} from './migrate-ventofit-portions.mjs';
+import {migrateBakingPowder} from './migrate-ventofit-baking-powder.mjs';
 const root=dirname(fileURLToPath(import.meta.url));
 const dbPath=process.env.DB_PATH||join(root,'data','gestion.sqlite');mkdirSync(dirname(dbPath),{recursive:true});
 const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -96,6 +97,7 @@ const ventofitPouchMigration=migrateVentofitPouchRecipes(db);
 console.log('Barritas individuales Ventofit:',migrateVentofitBars(db));
 console.log('Bizcochitos por 150 g Ventofit:',migrateVentofitBizcochitos(db));
 console.log('Porciones individuales Ventofit:',migrateVentofitPortions(db));
+migrateBakingPowder(db);
 if(ventofitPouchMigration.updated.length)console.log('Recetas pouch de Ventofit actualizadas: '+ventofitPouchMigration.updated.length+'.');
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
