@@ -104,6 +104,10 @@ migrateBakingPowder(db);
 migrateButter(db);
 migrateCreamCheese(db);
 migrateYeast(db);
+for(const c of db.prepare("SELECT state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
+ const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
+ if(i)console.log('VENTOFIT_CHIPS_REVIEW',JSON.stringify({item:i,lots:s.lots.filter(l=>l.itemId===i.id),entries:[...s.purchases,...s.adjustments].filter(p=>p.itemId===i.id)}));
+}
 if(ventofitPouchMigration.updated.length)console.log('Recetas pouch de Ventofit actualizadas: '+ventofitPouchMigration.updated.length+'.');
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
 if(!PUBLIC.startsWith('https://')&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(PUBLIC)){throw Error('PUBLIC_ORIGIN debe usar HTTPS fuera de la computadora local.')}
