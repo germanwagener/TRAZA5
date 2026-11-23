@@ -104,9 +104,13 @@ migrateBakingPowder(db);
 migrateButter(db);
 migrateCreamCheese(db);
 migrateYeast(db);
-for(const c of db.prepare("SELECT state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
+for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
- if(i)console.log('VENTOFIT_CHIPS_REVIEW',JSON.stringify({item:i,lots:s.lots.filter(l=>l.itemId===i.id),entries:[...s.purchases,...s.adjustments].filter(p=>p.itemId===i.id)}));
+ if(i&&!i.ventofitChips10kg){
+  Object.assign(i,{unit:'kg',presentationName:'Bolsa',presentationContent:10,presentationContentUnit:'kg',ventofitChips10kg:true});
+  db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),c.id);
+  console.log('VENTOFIT_CHIPS_10KG_CONFIGURED');
+ }
 }
 if(ventofitPouchMigration.updated.length)console.log('Recetas pouch de Ventofit actualizadas: '+ventofitPouchMigration.updated.length+'.');
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
