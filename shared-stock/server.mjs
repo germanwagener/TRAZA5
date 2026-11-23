@@ -25,6 +25,7 @@ import {migrateBakingPowder} from './migrate-ventofit-baking-powder.mjs';
 import {migrateButter} from './migrate-ventofit-butter.mjs';
 import {migrateCreamCheese} from './migrate-ventofit-cream-cheese.mjs';
 import {migrateYeast} from './migrate-ventofit-yeast.mjs';
+import {migrateBudins} from './migrate-ventofit-budins.mjs';
 const root=dirname(fileURLToPath(import.meta.url));
 const dbPath=process.env.DB_PATH||join(root,'data','gestion.sqlite');mkdirSync(dirname(dbPath),{recursive:true});
 const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -104,6 +105,7 @@ migrateBakingPowder(db);
 migrateButter(db);
 migrateCreamCheese(db);
 migrateYeast(db);
+migrateBudins(db);
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
  if(i&&!i.ventofitChips500gCorrected){
