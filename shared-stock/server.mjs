@@ -112,6 +112,9 @@ migrateBudins(db);
 migrateAlfajores(db);
 migrateChocolateTortitasChips(db);
 migrateDoughPacks(db);
+for(const c of db.prepare("SELECT state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
+ const s=JSON.parse(c.state);for(const i of s.items.filter(i=>!i.archived&&/salsa/i.test(i.name)))console.log('VENTOFIT_SAUCE_REVIEW',JSON.stringify({item:i,lots:s.lots.filter(l=>l.itemId===i.id),entries:[...s.purchases,...s.adjustments].filter(p=>p.itemId===i.id)}));
+}
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
  if(i&&!i.ventofitChips500gCorrected){
