@@ -106,11 +106,25 @@ migrateCreamCheese(db);
 migrateYeast(db);
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
- if(i&&!i.ventofitChips10kg){
-  Object.assign(i,{unit:'kg',presentationName:'Bolsa',presentationContent:10,presentationContentUnit:'kg',ventofitChips10kg:true});
+ if(i&&!i.ventofitChips500gCorrected){
+  Object.assign(i,{unit:'kg',presentationName:'Bolsa',presentationContent:.5,presentationContentUnit:'kg',ventofitChips500gCorrected:true});
+  const purchase=s.purchases.find(p=>p.id==='a0168c07-d9b5-4828-b296-e9e7c098b8cf');
+  const lot=purchase&&s.lots.find(l=>l.id===purchase.lotId);
+  if(purchase&&lot&&Number(purchase.qty)===12&&Number(lot.qty)===12&&Number(lot.remaining)===12){
+   purchase.qty=6;purchase.unitCost=Number(purchase.unitCost||0)*2;
+   lot.qty=6;lot.remaining=6;lot.unitCost=Number(lot.unitCost||0)*2;
+  }
   db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),c.id);
-  console.log('VENTOFIT_CHIPS_10KG_CONFIGURED');
+  console.log('VENTOFIT_CHIPS_500G_CONFIGURED',JSON.stringify({stockKg:s.lots.filter(l=>l.itemId===i.id).reduce((n,l)=>n+Number(l.remaining),0),purchaseKg:purchase?.qty}));
  }
+ let bathsChanged=false;
+ for(const bath of s.items.filter(i=>!i.archived&&['Baño de repostería fantasía dietético blanco aromatizado con etilvainilla','Baño de repostería semiamargo sin azúcar agregada'].includes(i.name))){
+  if(bath.ventofitBath10kg)continue;
+  if(bath.unit!=='kg')throw Error('Revisar unidad del baño de repostería antes de convertir');
+  Object.assign(bath,{presentationName:'Caja',presentationContent:10,presentationContentUnit:'kg',ventofitBath10kg:true});bathsChanged=true;
+  console.log('VENTOFIT_BATH_10KG_CONFIGURED',bath.name);
+ }
+ if(bathsChanged)db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),c.id);
 }
 if(ventofitPouchMigration.updated.length)console.log('Recetas pouch de Ventofit actualizadas: '+ventofitPouchMigration.updated.length+'.');
 const PORT=Number(process.env.PORT||3000),HOST=process.env.HOST||'127.0.0.1';let PUBLIC=process.env.PUBLIC_ORIGIN||`http://localhost:${PORT}`;
