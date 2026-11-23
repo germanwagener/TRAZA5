@@ -8,6 +8,7 @@ export function configureVentoFitDoughSplit(input){
  // Si la masa histórica quedó archivada después de un despliegue, buscarla por ID en la receta final.
  const primaryProduct=empanadas.length===1?empanadas[0]:null,secondaryProduct=tartas.length===1?tartas[0]:null;
  const primaryRecipe=primaryProduct?state.recipes.filter(r=>eq(r.itemId,primaryProduct.id)):[],secondaryRecipe=secondaryProduct?state.recipes.filter(r=>eq(r.itemId,secondaryProduct.id)):[];
+ if(primaryRecipe[0]?.ventofitDirectPack&&secondaryRecipe[0]?.ventofitDirectPack)return {changed:false,state,status:{configured:true,separateDirectPacks:true}};
  if(primaryRecipe.length===1&&secondaryRecipe.length===1&&primaryRecipe[0].weightSplit?.directIngredients===true){
   const primary=primaryRecipe[0],second=secondaryRecipe[0],w=primary.weightSplit;
   const historicalDough=state.items.find(i=>eq(i.id,w.sourceItemId));
