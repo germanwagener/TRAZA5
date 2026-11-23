@@ -115,6 +115,14 @@ migrateChocolateTortitasChips(db);
 migrateDoughPacks(db);
 migratePrepizzaSauce(db);
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
+ const s=JSON.parse(c.state),sauce=s.items.find(i=>!i.archived&&/^salsa lista/i.test(i.name));
+ if(sauce&&(sauce.presentationName!=='Bidón'||sauce.presentationContent!==10)){
+  Object.assign(sauce,{unit:'kg',presentationName:'Bidón',presentationContent:10,presentationContentUnit:'kg'});
+  db.prepare('UPDATE companies SET state=?,version=version+1 WHERE id=?').run(JSON.stringify(s),c.id);
+  console.log('VENTOFIT_SAUCE_BIDON_10KG');
+ }
+}
+for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),i=s.items.find(i=>i.name==='Chips de baño de repostería');
  if(i&&!i.ventofitChips500gCorrected){
   Object.assign(i,{unit:'kg',presentationName:'Bolsa',presentationContent:.5,presentationContentUnit:'kg',ventofitChips500gCorrected:true});
