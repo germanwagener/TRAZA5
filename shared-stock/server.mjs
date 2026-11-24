@@ -30,6 +30,7 @@ import {migrateAlfajores} from './migrate-ventofit-alfajores.mjs';
 import {migrateChocolateTortitasChips} from './migrate-ventofit-chocolate-tortitas-chips.mjs';
 import {migrateDoughPacks} from './migrate-ventofit-dough-packs.mjs';
 import {migratePrepizzaSauce} from './migrate-ventofit-prepizza-sauce.mjs';
+import {migrateDesserts} from './migrate-ventofit-desserts.mjs';
 const root=dirname(fileURLToPath(import.meta.url));
 const dbPath=process.env.DB_PATH||join(root,'data','gestion.sqlite');mkdirSync(dirname(dbPath),{recursive:true});
 const db=new DatabaseSync(dbPath);db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -113,11 +114,7 @@ migrateBudins(db);
 migrateAlfajores(db);
 migrateChocolateTortitasChips(db);
 migrateDoughPacks(db);
-for(const c of db.prepare("SELECT state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
- const s=JSON.parse(c.state);
- for(const i of s.items.filter(i=>!i.archived&&/POSTRE|CHEES|OREO|TIRAM|MOUS|MOUSE|CREMA DE LECHE|GELATINA|ESENCIA|COLONIAL|BAÑO|TORTITA INDIVIDUAL|PASTA DE|DULCE DE LECHE|ERITR|GLUTADIET|HUEVO EN POLVO|CACAO AMARGO/i.test(i.name+' '+i.brand)))console.log('VENTOFIT_DESSERT_REVIEW',JSON.stringify({item:i,recipe:s.recipes.find(r=>r.itemId===i.id&&!r.disabled)}));
- console.log('VENTOFIT_DESSERT_SECTORS',JSON.stringify(s.sectors));
-}
+migrateDesserts(db);
 migratePrepizzaSauce(db);
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),sauce=s.items.find(i=>!i.archived&&/^salsa lista/i.test(i.name));
