@@ -113,6 +113,11 @@ migrateBudins(db);
 migrateAlfajores(db);
 migrateChocolateTortitasChips(db);
 migrateDoughPacks(db);
+for(const c of db.prepare("SELECT state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
+ const s=JSON.parse(c.state);
+ for(const i of s.items.filter(i=>!i.archived&&/POSTRE|CHEES|OREO|TIRAM|MOUS|MOUSE|CREMA DE LECHE|GELATINA|ESENCIA|COLONIAL|BAÑO|TORTITA INDIVIDUAL|PASTA DE|DULCE DE LECHE|ERITR|GLUTADIET|HUEVO EN POLVO|CACAO AMARGO/i.test(i.name+' '+i.brand)))console.log('VENTOFIT_DESSERT_REVIEW',JSON.stringify({item:i,recipe:s.recipes.find(r=>r.itemId===i.id&&!r.disabled)}));
+ console.log('VENTOFIT_DESSERT_SECTORS',JSON.stringify(s.sectors));
+}
 migratePrepizzaSauce(db);
 for(const c of db.prepare("SELECT id,state FROM companies WHERE lower(replace(trim(name),' ',''))='ventofit'").all()){
  const s=JSON.parse(c.state),sauce=s.items.find(i=>!i.archived&&/^salsa lista/i.test(i.name));
